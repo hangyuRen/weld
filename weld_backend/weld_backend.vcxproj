@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{9d463189-ee26-4722-8c7a-37ce8b454e25}</ProjectGuid>
+    <RootNamespace>weldbackend</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>
+    </IncludePath>
+    <LibraryPath>
+    </LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(ProjectDir)external\PCL 1.12.1\3rdParty\Boost\include\boost-1_78;$(ProjectDir)external\hsc3api\include;$(ProjectDir)external\fv-laser-sdk-1.6.4-win64\fv-laser-sdk-1.6.4-win64\include;$(ProjectDir)external\PCL 1.12.1\include\pcl-1.12;$(ProjectDir)external\PCL 1.12.1\3rdParty\Eigen\eigen3;$(ProjectDir)external\PCL 1.12.1\3rdParty\FLANN\include;$(ProjectDir)external\open3d-0.19.0\open3d-0.19.0\include;$(ProjectDir)external\open3d-0.19.0\open3d-0.19.0\include\open3d\3rdparty;$(ProjectDir)external\libmodbus_libraries;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)external\hsc3api\x64\Release;$(ProjectDir)external\PCL 1.12.1\3rdParty\Boost\lib;$(ProjectDir)external\fv-laser-sdk-1.6.4-win64\fv-laser-sdk-1.6.4-win64\lib;$(ProjectDir)external\PCL 1.12.1\lib;$(ProjectDir)external\PCL 1.12.1\3rdParty\FLANN\lib;$(ProjectDir)external\open3d-0.19.0\open3d-0.19.0\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>libboost_atomic-vc143-mt-x64-1_78.lib;libboost_bzip2-vc143-mt-x64-1_78.lib;libboost_chrono-vc143-mt-x64-1_78.lib;libboost_container-vc143-mt-x64-1_78.lib;libboost_context-vc143-mt-x64-1_78.lib;libboost_contract-vc143-mt-x64-1_78.lib;libboost_coroutine-vc143-mt-x64-1_78.lib;libboost_date_time-vc143-mt-x64-1_78.lib;libboost_exception-vc143-mt-x64-1_78.lib;libboost_filesystem-vc143-mt-x64-1_78.lib;libboost_graph-vc143-mt-x64-1_78.lib;libboost_iostreams-vc143-mt-x64-1_78.lib;libboost_json-vc143-mt-x64-1_78.lib;libboost_locale-vc143-mt-x64-1_78.lib;libboost_log-vc143-mt-x64-1_78.lib;libboost_log_setup-vc143-mt-x64-1_78.lib;libboost_math_c99-vc143-mt-x64-1_78.lib;libboost_math_c99f-vc143-mt-x64-1_78.lib;libboost_math_c99l-vc143-mt-x64-1_78.lib;libboost_math_tr1-vc143-mt-x64-1_78.lib;libboost_math_tr1f-vc143-mt-x64-1_78.lib;libboost_math_tr1l-vc143-mt-x64-1_78.lib;libboost_nowide-vc143-mt-x64-1_78.lib;libboost_prg_exec_monitor-vc143-mt-x64-1_78.lib;libboost_program_options-vc143-mt-x64-1_78.lib;libboost_python310-vc143-mt-x64-1_78.lib;libboost_random-vc143-mt-x64-1_78.lib;libboost_regex-vc143-mt-x64-1_78.lib;libboost_serialization-vc143-mt-x64-1_78.lib;libboost_system-vc143-mt-x64-1_78.lib;libboost_test_exec_monitor-vc143-mt-x64-1_78.lib;libboost_thread-vc143-mt-x64-1_78.lib;libboost_timer-vc143-mt-x64-1_78.lib;libboost_type_erasure-vc143-mt-x64-1_78.lib;libboost_unit_test_framework-vc143-mt-x64-1_78.lib;libboost_wave-vc143-mt-x64-1_78.lib;libboost_wserialization-vc143-mt-x64-1_78.lib;libboost_zlib-vc143-mt-x64-1_78.lib;fvbase.lib;fvlaser.lib;xtr.lib;Hsc3Api.lib;CommApi.lib;pcl_common.lib;pcl_features.lib;pcl_filters.lib;pcl_io.lib;pcl_io_ply.lib;pcl_kdtree.lib;pcl_keypoints.lib;pcl_ml.lib;pcl_octree.lib;pcl_outofcore.lib;pcl_people.lib;pcl_recognition.lib;pcl_registration.lib;pcl_sample_consensus.lib;pcl_search.lib;pcl_segmentation.lib;pcl_stereo.lib;pcl_surface.lib;pcl_tracking.lib;pcl_visualization.lib;flann.lib;flann_cpp.lib;flann_cpp_s.lib;flann_s.lib;Open3D.lib;modbus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Calculate.h" />
+    <ClInclude Include="CurrentServer.h" />
+    <ClInclude Include="DataTypeUtil.h" />
+    <ClInclude Include="DigitalTwinServer.h" />
+    <ClInclude Include="httplib.h" />
+    <ClInclude Include="LaserWorker.h" />
+    <ClInclude Include="ModbusServer.h" />
+    <ClInclude Include="ModbusTools.h" />
+    <ClInclude Include="PointCloudProcess.h" />
+    <ClInclude Include="robotConnect.h" />
+    <ClInclude Include="Utils.h" />
+    <ClInclude Include="WeldRecongnition.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Calculate.cpp" />
+    <ClCompile Include="CurrentServer.cpp" />
+    <ClCompile Include="DigitalTwinServer.cpp" />
+    <ClCompile Include="LaserWorker.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ModbusServer.cpp" />
+    <ClCompile Include="ModbusTools.cpp" />
+    <ClCompile Include="PointCloudProcess.cpp" />
+    <ClCompile Include="robotConnect.cpp" />
+    <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="WeldRecongnition.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

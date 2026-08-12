@@ -1,0 +1,283 @@
+﻿D:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(1133,5): warning MSB4211: 正在首次将属性“GetTargetPathDependsOn”设置为某个值，但已在“D:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\Microsoft.Common.CurrentVersion.targets (2244,5)”处使用了该属性。
+  modbus-data.c
+  modbus-rtu.c
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(33,6): warning C4273: “modbus_set_bits_from_byte”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(313,17):
+      参见“modbus_set_bits_from_byte”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(44,6): warning C4273: “modbus_set_bits_from_bytes”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(314,17):
+      参见“modbus_set_bits_from_bytes”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(62,9): warning C4273: “modbus_get_byte_from_bits”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(318,20):
+      参见“modbus_get_byte_from_bits”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(81,7): warning C4273: “modbus_get_float_abcd”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(322,18):
+      参见“modbus_get_float_abcd”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(102,7): warning C4273: “modbus_get_float_dcba”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(323,18):
+      参见“modbus_get_float_dcba”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(122,7): warning C4273: “modbus_get_float_badc”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(324,18):
+      参见“modbus_get_float_badc”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(142,7): warning C4273: “modbus_get_float_cdab”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(325,18):
+      参见“modbus_get_float_cdab”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(162,7): warning C4273: “modbus_get_float”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(321,18):
+      参见“modbus_get_float”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(168,6): warning C4273: “modbus_set_float_abcd”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(328,17):
+      参见“modbus_set_float_abcd”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(187,6): warning C4273: “modbus_set_float_dcba”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(329,17):
+      参见“modbus_set_float_dcba”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(204,6): warning C4273: “modbus_set_float_badc”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(330,17):
+      参见“modbus_set_float_badc”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(221,6): warning C4273: “modbus_set_float_cdab”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(331,17):
+      参见“modbus_set_float_cdab”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-data.c(238,6): warning C4273: “modbus_set_float”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(327,17):
+      参见“modbus_set_float”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(878,5): warning C4273: “modbus_rtu_set_serial_mode”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(25,16):
+      参见“modbus_rtu_set_serial_mode”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(932,5): warning C4273: “modbus_rtu_get_serial_mode”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(26,16):
+      参见“modbus_rtu_get_serial_mode”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(956,5): warning C4273: “modbus_rtu_get_rts”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(33,16):
+      参见“modbus_rtu_get_rts”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(980,5): warning C4273: “modbus_rtu_set_rts”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(32,16):
+      参见“modbus_rtu_set_rts”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(1016,5): warning C4273: “modbus_rtu_set_custom_rts”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(35,16):
+      参见“modbus_rtu_set_custom_rts”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(1041,5): warning C4273: “modbus_rtu_get_rts_delay”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(39,16):
+      参见“modbus_rtu_get_rts_delay”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(1066,5): warning C4273: “modbus_rtu_set_rts_delay”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(38,16):
+      参见“modbus_rtu_set_rts_delay”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.c(1206,1): warning C4273: “modbus_new_rtu”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-rtu.h(20,1):
+      参见“modbus_new_rtu”的前一个定义
+  
+  modbus-tcp.c
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(239,50): warning C4133: “函数”: 从“int *”到“const char *”的类型不兼容
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(532,5): warning C4273: “modbus_tcp_listen”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.h(43,16):
+      参见“modbus_tcp_listen”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(566,53): warning C4133: “函数”: 从“int *”到“const char *”的类型不兼容
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(603,5): warning C4273: “modbus_tcp_pi_listen”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.h(47,16):
+      参见“modbus_tcp_pi_listen”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(683,58): warning C4133: “函数”: 从“int *”到“const char *”的类型不兼容
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(723,5): warning C4273: “modbus_tcp_accept”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.h(44,16):
+      参见“modbus_tcp_accept”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(757,5): warning C4273: “modbus_tcp_pi_accept”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.h(48,16):
+      参见“modbus_tcp_pi_accept”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(885,11): warning C4273: “modbus_new_tcp”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.h(42,22):
+      参见“modbus_new_tcp”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.c(949,11): warning C4273: “modbus_new_tcp_pi”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus-tcp.h(46,22):
+      参见“modbus_new_tcp_pi”的前一个定义
+  
+  modbus.c
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(44,13): warning C4273: “modbus_strerror”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(222,24):
+      参见“modbus_strerror”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(78,16): warning C4996: 'strerror': This function or variable may be unsafe. Consider using strerror_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(111,5): warning C4273: “modbus_flush”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(219,16):
+      参见“modbus_flush”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(223,5): warning C4273: “modbus_send_raw_request_tid”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(264,16):
+      参见“modbus_send_raw_request_tid”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(261,5): warning C4273: “modbus_send_raw_request”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(262,1):
+      参见“modbus_send_raw_request”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(530,5): warning C4273: “modbus_receive”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(269,16):
+      参见“modbus_receive”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(548,5): warning C4273: “modbus_receive_confirmation”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(271,16):
+      参见“modbus_receive_confirmation”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(782,5): warning C4273: “modbus_reply”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(273,16):
+      参见“modbus_reply”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1195,5): warning C4273: “modbus_reply_exception”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(278,1):
+      参见“modbus_reply_exception”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1273,5): warning C4273: “modbus_read_bits”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(224,16):
+      参见“modbus_read_bits”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1302,5): warning C4273: “modbus_read_input_bits”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(225,16):
+      参见“modbus_read_input_bits”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1377,5): warning C4273: “modbus_read_registers”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(226,16):
+      参见“modbus_read_registers”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1402,5): warning C4273: “modbus_read_input_registers”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(228,1):
+      参见“modbus_read_input_registers”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1458,5): warning C4273: “modbus_write_bit”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(229,16):
+      参见“modbus_write_bit”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1469,5): warning C4273: “modbus_write_register”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(230,16):
+      参见“modbus_write_register”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1480,5): warning C4273: “modbus_write_bits”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(231,16):
+      参见“modbus_write_bits”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1543,5): warning C4273: “modbus_write_registers”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(233,1):
+      参见“modbus_write_registers”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1591,5): warning C4273: “modbus_mask_write_register”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(235,1):
+      参见“modbus_mask_write_register”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1631,5): warning C4273: “modbus_write_and_read_registers”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(236,16):
+      参见“modbus_write_and_read_registers”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1712,5): warning C4273: “modbus_report_slave_id”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(243,16):
+      参见“modbus_report_slave_id”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1776,5): warning C4273: “modbus_set_slave”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(191,16):
+      参见“modbus_set_slave”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1786,5): warning C4273: “modbus_get_slave”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(192,16):
+      参见“modbus_get_slave”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1796,5): warning C4273: “modbus_set_error_recovery”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(193,16):
+      参见“modbus_set_error_recovery”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1809,5): warning C4273: “modbus_set_socket”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(195,16):
+      参见“modbus_set_socket”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1820,5): warning C4273: “modbus_get_socket”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(196,16):
+      参见“modbus_get_socket”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1831,5): warning C4273: “modbus_get_response_timeout”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(199,1):
+      参见“modbus_get_response_timeout”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1843,5): warning C4273: “modbus_set_response_timeout”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(201,1):
+      参见“modbus_set_response_timeout”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1856,5): warning C4273: “modbus_get_byte_timeout”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(204,1):
+      参见“modbus_get_byte_timeout”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1868,5): warning C4273: “modbus_set_byte_timeout”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(205,16):
+      参见“modbus_set_byte_timeout”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1883,5): warning C4273: “modbus_get_indication_timeout”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(208,1):
+      参见“modbus_get_indication_timeout”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1895,5): warning C4273: “modbus_set_indication_timeout”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(210,1):
+      参见“modbus_set_indication_timeout”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1908,5): warning C4273: “modbus_get_header_length”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(212,16):
+      参见“modbus_get_header_length”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1918,5): warning C4273: “modbus_enable_quirks”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(279,16):
+      参见“modbus_enable_quirks”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1930,5): warning C4273: “modbus_disable_quirks”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(280,16):
+      参见“modbus_disable_quirks”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1942,5): warning C4273: “modbus_connect”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(214,16):
+      参见“modbus_connect”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1952,6): warning C4273: “modbus_close”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(215,17):
+      参见“modbus_close”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1960,6): warning C4273: “modbus_free”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(217,17):
+      参见“modbus_free”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1968,5): warning C4273: “modbus_set_debug”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(220,16):
+      参见“modbus_set_debug”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(1985,19): warning C4273: “modbus_mapping_new_start_address”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(246,1):
+      参见“modbus_mapping_new_start_address”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(2068,19): warning C4273: “modbus_mapping_new”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(255,30):
+      参见“modbus_mapping_new”的前一个定义
+  
+D:\downloads\libmodbus-master\libmodbus-master\src\modbus.c(2078,6): warning C4273: “modbus_mapping_free”: dll 链接不一致
+      D:\downloads\libmodbus-master\libmodbus-master\src\modbus.h(259,17):
+      参见“modbus_mapping_free”的前一个定义
+  
+  正在生成代码...
+    正在创建库 D:\downloads\libmodbus-master\libmodbus-master\src\win32\x64\Release\modbus.lib 和对象 D:\downloads\libmodbus-master\libmodbus-master\src\win32\x64\Release\modbus.exp
+LINK : warning LNK4217: 符号“modbus_free”(在“ modbus.obj”中定义)已由“modbus-rtu.obj”(函数“modbus_new_rtu”中)导入
+LINK : warning LNK4217: 符号“modbus_free”(在“ modbus.obj”中定义)已由“modbus-tcp.obj”(函数“modbus_tcp_accept”中)导入
+LINK : warning LNK4217: 符号“modbus_set_bits_from_bytes”(在“ modbus-data.obj”中定义)已由“modbus.obj”(函数“modbus_reply”中)导入
+  modbus.vcxproj -> D:\downloads\libmodbus-master\libmodbus-master\src\win32\x64\Release\modbus.dll
