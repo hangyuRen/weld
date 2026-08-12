@@ -5,3 +5,4 @@ digital-twin-visualizer/public/build/
 # 忽略后端外部依赖
 weld_backend/external/
 weld_backend/.vs/
+weld_backend/weld_backend/
