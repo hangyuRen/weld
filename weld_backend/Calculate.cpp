@@ -144,20 +144,20 @@ double Calculate::getDistanceManual(const std::string& imagePath, double pixelX,
 
         std::string body = bodyStream.str();
 
-        // connect to the manual depth service (1.py on port 8001)
+        // connect to the manual depth service (2.py on port 8000, path /detect-distance/manual)
         asio::io_context ioc;
         tcp::resolver resolver(ioc);
         beast::tcp_stream stream(ioc);
 
         auto const results =
-            resolver.resolve("127.0.0.1", "8001");
+            resolver.resolve("127.0.0.1", "8000");
 
         stream.connect(results);
 
         // build HTTP request
         http::request<http::string_body> req{
             http::verb::post,
-            "/detect-distance",
+            "/detect-distance/manual",
             11
         };
 

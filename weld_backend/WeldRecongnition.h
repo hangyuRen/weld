@@ -11,6 +11,8 @@ public:
 	static void getWeldSeam(std::vector<TimestampedPoint>& cloud, std::vector<weldStruct>& weld);
 	static std::vector<weldStruct> solveWeldByPCA(const std::vector<TimestampedPoint>& points, float target_z, float& width);
 	static void loadAndProcess(std::vector<TimestampedPoint>& rawPoints, double targetZ, std::vector<TimestampedPoint>& outCleanRaw, std::vector<weldStruct>& outWeld, const std::string& flag, float& width);
+	// 翻译自 algorithm2.py：按扫描线检测焊缝坡口左右拐角，分别 MAD 去噪 + 圆拟合重采样，输出左右两条焊缝点
+	static void detectWeldLeftRight(const std::vector<TimestampedPoint>& cloud, std::vector<weldStruct>& leftWeld, std::vector<weldStruct>& rightWeld, int num_samples = 20);
 	static bool loadTimestampedDataFromTxt(const std::string& filename, std::vector<TimestampedPoint>& points);
 	static std::vector<weldStruct> filterOverlappingPoints(const std::vector<weldStruct>& base_pts, const std::vector<weldStruct>& query_pts, double threshold = 10.0);
 	static std::vector<weldStruct> fitAndResamplePath(const std::vector<weldStruct>& points, int num_samples = 30);

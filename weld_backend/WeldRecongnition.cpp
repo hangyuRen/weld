@@ -2,37 +2,37 @@
 
 std::vector<TimestampedPoint> WeldRecongnition::timeCloud = []() {
     std::vector<TimestampedPoint> vec;
-    vec.reserve(3000); // ·ÖÅä³õÊ¼ÈİÁ¿
+    vec.reserve(3000); // ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½
     return vec;
     }();
 
-// »ñÈ¡º¸·ìµã ÖØÔØ
+// ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 void WeldRecongnition::getWeldSeam(std::vector<TimestampedPoint>& cloud, std::vector<weldStruct>& weld) {
 
-    // Í³¼ÆÑ§ÂË²¨
+    // Í³ï¿½ï¿½Ñ§ï¿½Ë²ï¿½
     std::vector<TimestampedPoint> staData = PointCloudProcessor::statisticalOutlier(cloud);
 
-    // ¸ù¾İtimestamp½øĞĞ·Ö×é
+    // ï¿½ï¿½ï¿½ï¿½timestampï¿½ï¿½ï¿½Ğ·ï¿½ï¿½ï¿½
     std::vector<std::vector<TimestampedPoint>> groupedData = PointCloudProcessor::groupByTimestamp(staData);
 
-    // ¼ÆËãº¸·ìµã
+    // ï¿½ï¿½ï¿½ãº¸ï¿½ï¿½ï¿½
     std::vector<TimestampedPoint> res;
     for (size_t i = 0; i < groupedData.size(); ++i) {
         TimestampedPoint point = PointCloudProcessor::weldValueByTimestamp(groupedData[i]);
         res.push_back(point);
     }
 
-    std::cout << "º¸·ìµã³õ²½¼ÆËãÍê³É£¬ÊıÁ¿: " << res.size() << std::endl;
+    std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½ï¿½ï¿½ï¿½: " << res.size() << std::endl;
 
-    // È¥³ıÀëÈºº¸·ìµã
+    // È¥ï¿½ï¿½ï¿½ï¿½Èºï¿½ï¿½ï¿½ï¿½ï¿½
     std::vector<TimestampedPoint> filteredWeld = PointCloudProcessor::removeOutliersByDistance(res);
 
-    std::cout << "º¸·ìµã¹ıÂËÍê³É£¬ÊıÁ¿: " << filteredWeld.size() << std::endl;
+    std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É£ï¿½ï¿½ï¿½ï¿½ï¿½: " << filteredWeld.size() << std::endl;
 
-    // ×ª»» `filteredWeld` Îª PCL µãÔÆ¸ñÊ½£¨º¸·ìµã£©
+    // ×ªï¿½ï¿½ `filteredWeld` Îª PCL ï¿½ï¿½ï¿½Æ¸ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£©
     for (const auto& pt : res) {
         weldStruct temp = { pt.timestamp, pcl::PointXYZ(pt.x, pt.y, pt.z), pt.rx, pt.ry, pt.rz };
-        std::cout << "º¸·ìµã: timestamp=" << temp.timestamp << " x=" << temp.point.x << " y=" << temp.point.y << " z=" << temp.point.z
+        std::cout << "ï¿½ï¿½ï¿½ï¿½ï¿½: timestamp=" << temp.timestamp << " x=" << temp.point.x << " y=" << temp.point.y << " z=" << temp.point.z
             << " rx=" << temp.rx << " ry=" << temp.ry << " rz=" << temp.rz << std::endl;
         weld.push_back(temp);
     }
@@ -64,7 +64,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
 {
     //  if (points.empty()) return {};
 
-    //  // 1. ·Ö×é
+    //  // 1. ï¿½ï¿½ï¿½ï¿½
     //  std::map<std::string, std::vector<const TimestampedPoint*>> groups;
     //  for (const auto& p : points) {
     //      groups[p.timestamp].push_back(&p);
@@ -74,7 +74,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
     //  for (auto const& [ts, group] : groups) {
     //      if (group.size() < 30) continue;
 
-    //      // 2. ¹¹ÔìÊı¾İ¾ØÕó²¢½øĞĞ PCA
+    //      // 2. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ¾ï¿½ï¿½ó²¢½ï¿½ï¿½ï¿½ PCA
     //      Eigen::MatrixXd mat(group.size(), 3);
     //      for (size_t i = 0; i < group.size(); ++i) {
     //          mat(i, 0) = group[i]->x; mat(i, 1) = group[i]->y; mat(i, 2) = group[i]->z;
@@ -85,7 +85,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
     //      Eigen::JacobiSVD<Eigen::MatrixXd> svd(centered, Eigen::ComputeThinV);
     //      Eigen::MatrixXd pts_2d = centered * svd.matrixV().leftCols(2);
 
-    //      // 3. ¶ş´ÎÄâºÏ v = au^2 + bu + c
+    //      // 3. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ v = au^2 + bu + c
     //      Eigen::VectorXd u = pts_2d.col(0);
     //      Eigen::VectorXd v = pts_2d.col(1);
     //      Eigen::MatrixXd A(u.size(), 3);
@@ -95,7 +95,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
     //      Eigen::Vector3d coeffs = A.householderQr().solve(v);
     //      Eigen::VectorXd residuals = v - (A * coeffs);
 
-    //      // 4. ÌáÈ¡Æ«²î×î´óµÄ 10% ²¢¼ÓÈ¨ÖØĞÄ
+    //      // 4. ï¿½ï¿½È¡Æ«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 10% ï¿½ï¿½ï¿½ï¿½È¨ï¿½ï¿½ï¿½ï¿½
     //      std::vector<size_t> indices(group.size());
     //      std::iota(indices.begin(), indices.end(), 0);
     //      std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
@@ -121,7 +121,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
     //  return result;
     if (points.empty()) return {};
 
-    // 1. ·Ö×é (ts_groups)
+    // 1. ï¿½ï¿½ï¿½ï¿½ (ts_groups)
     std::map<std::string, std::vector<const TimestampedPoint*>> groups;
     for (const auto& p : points) {
         groups[p.timestamp].push_back(&p);
@@ -132,7 +132,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
     for (auto const& [ts, group] : groups) {
         if (group.size() < 60) continue;
 
-        // ¹¹Ôì¾ØÕó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         Eigen::MatrixXd pts_np(group.size(), 3);
         for (size_t i = 0; i < group.size(); ++i) {
             pts_np(i, 0) = group[i]->x;
@@ -140,13 +140,13 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
             pts_np(i, 2) = group[i]->z;
         }
 
-        // 2. PCA ´¦Àí
+        // 2. PCA ï¿½ï¿½ï¿½ï¿½
         Eigen::Vector3d mean = pts_np.colwise().mean();
         Eigen::MatrixXd centered = pts_np.rowwise() - mean.transpose();
         Eigen::JacobiSVD<Eigen::MatrixXd> svd(centered, Eigen::ComputeThinV);
 
         Eigen::MatrixXd V = svd.matrixV();
-        // --- ¹Ø¼ü£ºÇ¿ÖÆ·½ÏòÒ»ÖÂĞÔ£¬È·±£ u ÖáÖ¸Ïò X ÕıÏò£¬v ÖáÖ¸Ïò Z ÕıÏò ---
+        // --- ï¿½Ø¼ï¿½ï¿½ï¿½Ç¿ï¿½Æ·ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ô£ï¿½È·ï¿½ï¿½ u ï¿½ï¿½Ö¸ï¿½ï¿½ X ï¿½ï¿½ï¿½ï¿½v ï¿½ï¿½Ö¸ï¿½ï¿½ Z ï¿½ï¿½ï¿½ï¿½ ---
         if (V(0, 0) < 0) V.col(0) *= -1.0;
         if (V(2, 1) < 0) V.col(1) *= -1.0;
 
@@ -155,7 +155,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
         Eigen::VectorXd v = pts_2d.col(1);
 
         try {
-            // --- A. Ñ°ÕÒÖĞĞÄµã ---
+            // --- A. Ñ°ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½ ---
             Eigen::Vector3d coeffs_base = polyfitSVD(u, v);
             Eigen::VectorXd v_fit = Eigen::VectorXd::Zero(u.size());
             for (int i = 0; i < u.size(); ++i) {
@@ -166,23 +166,23 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
             int core_idx = 0;
             residuals.array().abs().maxCoeff(&core_idx);
 
-            // 2. ¶¨ÒåÄÚ²¿ËÑË÷ lambda (Ìæ»» get_local_curvature)
-            // Âß¼­£ºÔÚÖ¸¶¨·¶Î§ÄÚÑ°ÕÒÇúÂÊ a ×îĞ¡µÄµã (×îÍ¹µÄ¹Õµã)
+            // 2. ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ lambda (ï¿½æ»» get_local_curvature)
+            // ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½Î§ï¿½ï¿½Ñ°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ a ï¿½ï¿½Ğ¡ï¿½Äµï¿½ (ï¿½ï¿½Í¹ï¿½Ä¹Õµï¿½)
             auto get_curv_idx = [&](int start, int end) {
                 int win = 7;
                 double min_a = 1e9;
-                int best_idx = (start + end) / 2; // Ä¬ÈÏÖµ·ÀÖ¹·¶Î§Ì«Õ­
+                int best_idx = (start + end) / 2; // Ä¬ï¿½ï¿½Öµï¿½ï¿½Ö¹ï¿½ï¿½Î§Ì«Õ­
 
-                // ±ß½ç±£»¤£ºÈ·±£´°¿Ú²»»áÔ½½ç
+                // ï¿½ß½ç±£ï¿½ï¿½ï¿½ï¿½È·ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½Ô½ï¿½ï¿½
                 int actual_end = std::min(end, (int)u.size());
                 for (int i = start; i <= actual_end - win; ++i) {
                     Eigen::VectorXd sub_u = u.segment(i, win);
                     Eigen::VectorXd sub_v = v.segment(i, win);
 
-                    // Ê¹ÓÃ BDCSVD Çó½â¾Ö²¿ÄâºÏ
+                    // Ê¹ï¿½ï¿½ BDCSVD ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ï¿½ï¿½
                     Eigen::Vector3d sc = polyfitSVD(sub_u, sub_v);
 
-                    // Ñ°ÕÒ¶ş´ÎÏîÏµÊı a µÄ×îĞ¡Öµ (ÏòÉÏÍ¹Æğ×î¾çÁÒµÄµØ·½)
+                    // Ñ°ï¿½Ò¶ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ a ï¿½ï¿½ï¿½ï¿½Ğ¡Öµ (ï¿½ï¿½ï¿½ï¿½Í¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÒµÄµØ·ï¿½)
                     if (sc(0) < min_a) {
                         min_a = sc(0);
                         best_idx = i + win / 2;
@@ -191,22 +191,22 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
                 return best_idx;
                 };
 
-            // 3. ËÑË÷×óÓÒ¹Õµã
+            // 3. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò¹Õµï¿½
             int search_range = 50;
-            // ×óÒí£º[l_start, core_idx]
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½[l_start, core_idx]
             int idxL = get_curv_idx(std::max(0, core_idx - search_range), core_idx);
             const TimestampedPoint* p_top_l = group[idxL];
 
-            // ÓÒÒí£º[core_idx, r_end]
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½[core_idx, r_end]
             int idxR = get_curv_idx(core_idx, std::min((int)u.size(), core_idx + search_range));
             const TimestampedPoint* p_top_r = group[idxR];
 
-            // 4. ¼ÆËã 3D ÎïÀí¿í¶È
+            // 4. ï¿½ï¿½ï¿½ï¿½ 3D ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             float weld_width = std::sqrt(std::pow(p_top_l->x - p_top_r->x, 2) +
                 std::pow(p_top_l->y - p_top_r->y, 2) +
                 std::pow(p_top_l->z - p_top_r->z, 2));
 
-            // --- C. ¼ÆËã¼ÓÈ¨ÖĞĞÄ ---
+            // --- C. ï¿½ï¿½ï¿½ï¿½ï¿½È¨ï¿½ï¿½ï¿½ï¿½ ---
             std::vector<size_t> indices(group.size());
             std::iota(indices.begin(), indices.end(), 0);
             std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
@@ -229,7 +229,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
             ws.timestamp = ts;
             ws.width = weld_width;
 
-            // ×ËÌ¬¾ùÖµ
+            // ï¿½ï¿½Ì¬ï¿½ï¿½Öµ
             float sum_rx = 0, sum_ry = 0, sum_rz = 0;
             for (int i = 0; i < top_n; ++i) {
                 sum_rx += group[indices[i]]->rx; sum_ry += group[indices[i]]->ry; sum_rz += group[indices[i]]->rz;
@@ -242,7 +242,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
         catch (...) { continue; }
     }
 
-    // --- Â³°ôÍ³¼ÆÌŞ³ıÒì³£Öµ (2 sigma) ---
+    // --- Â³ï¿½ï¿½Í³ï¿½ï¿½ï¿½Ş³ï¿½ï¿½ì³£Öµ (2 sigma) ---
     if (weld_path.empty()) return {};
 
     double sum_w = 0, sq_sum_w = 0;
@@ -259,7 +259,7 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
         }
     }
 
-    // Ä£·Â Python ´òÓ¡¸ñÊ½
+    // Ä£ï¿½ï¿½ Python ï¿½ï¿½Ó¡ï¿½ï¿½Ê½
     printf("\nWeld Width Analysis:\n");
     printf("  Count: %d -> %d\n", (int)weld_path.size(), (int)clean_path.size());
     printf("  Raw Mean: %.3f mm | CLEAN AVERAGE: %.3f mm (Filtered %d outliers)\n\n",
@@ -271,13 +271,13 @@ std::vector<weldStruct> WeldRecongnition::solveWeldByPCA(const std::vector<Times
 
 void WeldRecongnition::loadAndProcess(std::vector<TimestampedPoint>& rawPoints, double targetZ, std::vector<TimestampedPoint>& outCleanRaw, std::vector<weldStruct>& outWeld, const std::string& flag, float& width)
 {
-    // 1. ¼ÓÔØÔ­Ê¼Êı¾İ (¶ÔÓ¦ points = [] ... points.append(p))
+    // 1. ï¿½ï¿½ï¿½ï¿½Ô­Ê¼ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½Ó¦ points = [] ... points.append(p))
     /*std::vector<TimestampedPoint> rawPoints;
     loadTimestampedDataFromTxt(filePath, rawPoints);*/
     if (rawPoints.empty()) return;
 
-    // 2. Ô¤´¦Àí£ºÈ«¾ÖÈ¥Ôë (¶ÔÓ¦ clean = preprocess_clean(points))
-    // ×ª»»Îª PCL µãÔÆ¸ñÊ½½øĞĞ´¦Àí
+    // 2. Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½È¥ï¿½ï¿½ (ï¿½ï¿½Ó¦ clean = preprocess_clean(points))
+    // ×ªï¿½ï¿½Îª PCL ï¿½ï¿½ï¿½Æ¸ï¿½Ê½ï¿½ï¿½ï¿½Ğ´ï¿½ï¿½ï¿½
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     for (const auto& p : rawPoints) {
         cloud->push_back(pcl::PointXYZ(static_cast<float>(p.x),
@@ -289,15 +289,15 @@ void WeldRecongnition::loadAndProcess(std::vector<TimestampedPoint>& rawPoints, 
     sor.setInputCloud(cloud);
 
     if (flag._Equal("A")) {
-        sor.setMeanK(10);            // A ×é¸üÃÜ¼¯£¬ÁÚ¾ÓÊı¿ÉÒÔÊÊµ±¼õÉÙ
-        sor.setStddevMulThresh(1.5); // A ×é¸üÃÜ¼¯£¬±ê×¼²î±¶Êı¿ÉÒÔÊÊµ±½µµÍ
+        sor.setMeanK(10);            // A ï¿½ï¿½ï¿½ï¿½Ü¼ï¿½ï¿½ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½
+        sor.setStddevMulThresh(1.5); // A ï¿½ï¿½ï¿½ï¿½Ü¼ï¿½ï¿½ï¿½ï¿½ï¿½×¼ï¿½î±¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½
     }
     else if (flag._Equal("B")) {
-        sor.setMeanK(5);            // B ×é½ÏÏ¡Êè£¬ÁÚ¾ÓÊı¿ÉÒÔÊÊµ±Ôö¼Ó
-        sor.setStddevMulThresh(10); // B ×é½ÏÏ¡Êè£¬±ê×¼²î±¶Êı¿ÉÒÔÊÊµ±Ôö¼Ó
+        sor.setMeanK(5);            // B ï¿½ï¿½ï¿½Ï¡ï¿½è£¬ï¿½Ú¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½
+        sor.setStddevMulThresh(10); // B ï¿½ï¿½ï¿½Ï¡ï¿½è£¬ï¿½ï¿½×¼ï¿½î±¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½
     }
     else {
-        // Ä¬ÈÏ²ÎÊı
+        // Ä¬ï¿½Ï²ï¿½ï¿½ï¿½
         sor.setMeanK(10);
         sor.setStddevMulThresh(1.5);
     }
@@ -305,14 +305,14 @@ void WeldRecongnition::loadAndProcess(std::vector<TimestampedPoint>& rawPoints, 
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
     sor.filter(inliers->indices);
 
-    // ÌáÈ¡¹ıÂËºóµÄ¡°¸É¾»¡±Ô­Ê¼µãÔÆ
+    // ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ëºï¿½Ä¡ï¿½ï¿½É¾ï¿½ï¿½ï¿½Ô­Ê¼ï¿½ï¿½ï¿½ï¿½
     outCleanRaw.clear();
     for (int idx : inliers->indices) {
         outCleanRaw.push_back(rawPoints[idx]);
     }
 
-    // 3. Çó½âº¸½Óµã (¶ÔÓ¦ weld = solve_weld_centers(clean, target_z))
-    // ×¢Òâ£ºÕâÀï´«ÈëµÄÊÇÒÑ¾­È¥Ôë¹ıµÄ outCleanRaw
+    // 3. ï¿½ï¿½âº¸ï¿½Óµï¿½ (ï¿½ï¿½Ó¦ weld = solve_weld_centers(clean, target_z))
+    // ×¢ï¿½â£ºï¿½ï¿½ï¿½ï´«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½È¥ï¿½ï¿½ï¿½ï¿½ï¿½ outCleanRaw
     outWeld = solveWeldByPCA(outCleanRaw, targetZ, width);
 }
 
@@ -321,16 +321,16 @@ bool WeldRecongnition::loadTimestampedDataFromTxt(const std::string& filename, s
     std::string line;
 
     while (std::getline(infile, line)) {
-        // ÕÒµ½¶ººÅµÄÎ»ÖÃ
+        // ï¿½Òµï¿½ï¿½ï¿½ï¿½Åµï¿½Î»ï¿½ï¿½
         size_t commaPos = line.find(',');
         if (commaPos == std::string::npos) continue;
 
-        // »ñÈ¡timestamp
+        // ï¿½ï¿½È¡timestamp
         std::string timestamp = line.substr(0, commaPos);
 
-        // »ñÈ¡Ê£ÏÂµÄ {...}
+        // ï¿½ï¿½È¡Ê£ï¿½Âµï¿½ {...}
         std::string data = line.substr(commaPos + 1);
-        // È¥µô´óÀ¨ºÅ
+        // È¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         data.erase(std::remove(data.begin(), data.end(), '{'), data.end());
         data.erase(std::remove(data.begin(), data.end(), '}'), data.end());
 
@@ -343,7 +343,7 @@ bool WeldRecongnition::loadTimestampedDataFromTxt(const std::string& filename, s
                 values.push_back(std::stod(token));
             }
             catch (...) {
-                // ³öÏÖ·Ç·¨¸¡µãÊı
+                // ï¿½ï¿½ï¿½Ö·Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 return false;
             }
         }
@@ -371,12 +371,12 @@ std::vector<weldStruct> WeldRecongnition::filterOverlappingPoints(const std::vec
     if (base_pts.empty()) return query_pts;
 
     std::vector<weldStruct> filtered_query;
-    double sq_threshold = threshold * threshold; // Ê¹ÓÃÆ½·½±È½Ï£¬Ğ§ÂÊ¸ü¸ß
+    double sq_threshold = threshold * threshold; // Ê¹ï¿½ï¿½Æ½ï¿½ï¿½ï¿½È½Ï£ï¿½Ğ§ï¿½Ê¸ï¿½ï¿½ï¿½
 
     for (const auto& q : query_pts) {
         bool is_overlap = false;
 
-        // ±éÀú base ÖĞµÄËùÓĞµã½øĞĞ¾àÀëĞ£Ñé
+        // ï¿½ï¿½ï¿½ï¿½ base ï¿½Ğµï¿½ï¿½ï¿½ï¿½Ğµï¿½ï¿½ï¿½Ğ¾ï¿½ï¿½ï¿½Ğ£ï¿½ï¿½
         for (const auto& b : base_pts) {
             double dx = q.point.x - b.point.x;
             double dy = q.point.y - b.point.y;
@@ -385,7 +385,7 @@ std::vector<weldStruct> WeldRecongnition::filterOverlappingPoints(const std::vec
 
             if (dist_sq < sq_threshold) {
                 is_overlap = true;
-                break; // Ö»Òª·¢ÏÖÒ»¸ö×ã¹»½üµÄµã£¬¾ÍÅĞ¶¨ÎªÖØµş
+                break; // Ö»Òªï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ã¹»ï¿½ï¿½ï¿½Äµã£¬ï¿½ï¿½ï¿½Ğ¶ï¿½Îªï¿½Øµï¿½
             }
         }
 
@@ -400,7 +400,7 @@ std::vector<weldStruct> WeldRecongnition::fitAndResamplePath(const std::vector<w
     if (points.empty()) return {};
     if (points.size() < 2) return points;
 
-    // 1. ÌáÈ¡Ô­Ê¼ÌØÕ÷µã²¢¼ÆËãÀÛ»ıÂ·¾¶³¤¶È s
+    // 1. ï¿½ï¿½È¡Ô­Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ã²¢ï¿½ï¿½ï¿½ï¿½ï¿½Û»ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ s
     std::vector<double> s(points.size(), 0.0);
     for (size_t i = 1; i < points.size(); ++i) {
         double dx = points[i].point.x - points[i - 1].point.x;
@@ -417,9 +417,9 @@ std::vector<weldStruct> WeldRecongnition::fitAndResamplePath(const std::vector<w
     std::vector<weldStruct> resampled;
     resampled.reserve(num_samples);
 
-    // 2. ¾ùÔÈÈ¡Ñù (°üº¬ 0 ºÍ 1)
+    // 2. ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ 0 ï¿½ï¿½ 1)
     for (int i = 0; i < num_samples; ++i) {
-        // ÑÏ¸ñ±£ÁôÊ×Î²µãÂß¼­
+        // ï¿½Ï¸ï¿½ï¿½ï¿½ï¿½ï¿½Î²ï¿½ï¿½ï¿½ß¼ï¿½
         if (i == 0) {
             resampled.push_back(points.front());
             continue;
@@ -429,26 +429,26 @@ std::vector<weldStruct> WeldRecongnition::fitAndResamplePath(const std::vector<w
             continue;
         }
 
-        // ¼ÆËãÄ¿±ê³¤¶ÈÎ»ÖÃ
+        // ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ê³¤ï¿½ï¿½Î»ï¿½ï¿½
         double target_s = (double)i / (num_samples - 1) * total_length;
 
-        // ²éÕÒÄ¿±ê s ËùÔÚµÄÇø¼ä (ÀàËÆ interp1d)
+        // ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ s ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ interp1d)
         auto it = std::lower_bound(s.begin(), s.end(), target_s);
         int idx = std::distance(s.begin(), it);
 
         if (idx == 0) idx = 1;
         int prev = idx - 1;
 
-        // ¼ÆËãÏßĞÔ²åÖµ±ÈÀı t
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô²ï¿½Öµï¿½ï¿½ï¿½ï¿½ t
         double t = (target_s - s[prev]) / (s[idx] - s[prev]);
 
         weldStruct ws;
         ws.timestamp = "resampled";
-        // ×ø±ê²åÖµ
+        // ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
         ws.point.x = points[prev].point.x + t * (points[idx].point.x - points[prev].point.x);
         ws.point.y = points[prev].point.y + t * (points[idx].point.y - points[prev].point.y);
         ws.point.z = points[prev].point.z + t * (points[idx].point.z - points[prev].point.z);
-        // ×ËÌ¬²åÖµ
+        // ï¿½ï¿½Ì¬ï¿½ï¿½Öµ
         ws.rx = points[prev].rx + t * (points[idx].rx - points[prev].rx);
         ws.ry = points[prev].ry + t * (points[idx].ry - points[prev].ry);
         ws.rz = points[prev].rz + t * (points[idx].rz - points[prev].rz);
@@ -472,21 +472,21 @@ Eigen::Vector3d WeldRecongnition::fitCircle3D(const std::vector<weldStruct>& poi
         pts(i, 2) = points[i].point.z;
     }
 
-    // --- 2. ¼ÆËã¾ùÖµ ---
+    // --- 2. ï¿½ï¿½ï¿½ï¿½ï¿½Öµ ---
     Eigen::Vector3d mean = pts.colwise().mean();
 
-    // È¥ÖĞĞÄ»¯
+    // È¥ï¿½ï¿½ï¿½Ä»ï¿½
     Eigen::MatrixXd centered = pts.rowwise() - mean.transpose();
 
     // --- 3. PCA (SVD) ---
     Eigen::JacobiSVD<Eigen::MatrixXd> svd(centered, Eigen::ComputeThinV);
     Eigen::Matrix3d V = svd.matrixV();
 
-    // È¡Ç°Á½¸öÖ÷·½Ïò£¨Æ½Ãæ£©
+    // È¡Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ½ï¿½æ£©
     Eigen::Vector3d v1 = V.col(0);
     Eigen::Vector3d v2 = V.col(1);
 
-    // --- 4. Í¶Ó°µ½2D ---
+    // --- 4. Í¶Ó°ï¿½ï¿½2D ---
     Eigen::VectorXd x(n), y(n);
     for (int i = 0; i < n; ++i) {
         Eigen::Vector3d p = pts.row(i);
@@ -494,7 +494,7 @@ Eigen::Vector3d WeldRecongnition::fitCircle3D(const std::vector<weldStruct>& poi
         y(i) = p.dot(v2);
     }
 
-    // --- 5. ÄâºÏ2DÔ² ---
+    // --- 5. ï¿½ï¿½ï¿½2DÔ² ---
     Eigen::MatrixXd A(n, 3);
     Eigen::VectorXd b(n);
 
@@ -510,7 +510,7 @@ Eigen::Vector3d WeldRecongnition::fitCircle3D(const std::vector<weldStruct>& poi
     double cx = c(0);
     double cy = c(1);
 
-    // --- 6. Ó³Éä»Ø3D ---
+    // --- 6. Ó³ï¿½ï¿½ï¿½3D ---
     Eigen::Vector3d center3D = mean + cx * v1 + cy * v2;
 
     return center3D;
@@ -548,4 +548,436 @@ std::vector<weldStruct> WeldRecongnition::offsetAlongBendRadius(
         result.push_back(new_p);
     }
     return result;
+}
+
+// =====================================================================
+// ç¿»è¯‘è‡ª algorithm2.pyï¼šæ‰«æçº¿æ–œç‡åˆ†ææ£€æµ‹ç„Šç¼å¡å£å·¦å³æ‹è§’ + åœ†æ‹Ÿåˆé‡é‡‡æ ·
+// ä»…ä¾èµ– C++ æ ‡å‡†åº“ + Eigenï¼ˆå·²æœ‰ä¾èµ–ï¼‰ï¼Œæ— æ–°å¢å¤–éƒ¨ä¾èµ–ï¼Œä¸åšç»˜å›¾ã€‚
+// =====================================================================
+namespace {
+
+    // å¯¹åº” np.medianï¼šæ‹·è´æ’åºï¼Œå¶æ•°é•¿åº¦å–ä¸­é—´ä¸¤æ•°å‡å€¼
+    double medianValue(std::vector<double> v) {
+        if (v.empty()) return 0.0;
+        std::sort(v.begin(), v.end());
+        const size_t n = v.size();
+        if (n % 2 == 1) return v[n / 2];
+        return 0.5 * (v[n / 2 - 1] + v[n / 2]);
+    }
+
+    // å¯¹åº” np.interpï¼šxs å·²å‡åºï¼Œè¶Šç•Œå–ç«¯ç‚¹å€¼
+    double interpolateLinear(const std::vector<double>& xs, const std::vector<double>& ys, double xq) {
+        const int n = static_cast<int>(xs.size());
+        if (n == 0) return 0.0;
+        if (xq <= xs[0]) return ys[0];
+        if (xq >= xs[n - 1]) return ys[n - 1];
+        auto it = std::lower_bound(xs.begin(), xs.end(), xq);
+        int idx = static_cast<int>(std::distance(xs.begin(), it));
+        if (idx == 0) return ys[0];
+        int i0 = idx - 1;
+        double denom = xs[idx] - xs[i0];
+        if (denom < 1e-12) return ys[i0];
+        double t = (xq - xs[i0]) / denom;
+        return ys[i0] + t * (ys[idx] - ys[i0]);
+    }
+
+    // å¯¹åº” _refine_cornerï¼šä» anchor æ²¿ direction(Â±1) æ­¥è¿›ï¼Œè¿”å›ä»â€œé™¡â€çš„æœ€åç´¢å¼•
+    int refineCorner(const std::vector<double>& absSlope, int anchor, int direction, int sw, double threshold) {
+        const int n = static_cast<int>(absSlope.size());
+        int lastSteep = anchor;
+        for (int step = 0; step <= 50; ++step) {
+            int i = anchor + direction * step;
+            if (i < sw || i >= n - sw) break;
+            if (absSlope[i] > threshold) {
+                lastSteep = i;
+            }
+            else if (absSlope[i] < threshold * 0.5) {
+                break;
+            }
+        }
+        return lastSteep;
+    }
+
+    // å¯¹åº” _mad_filterï¼šæŒ‰ x æ’åºï¼Œå¯¹ yã€z åˆ†åˆ« MAD å»é‡
+    std::vector<pcl::PointXYZ> madFilter(const std::vector<pcl::PointXYZ>& input, double sigma = 3.5) {
+        std::vector<pcl::PointXYZ> pts = input;
+        std::sort(pts.begin(), pts.end(),
+            [](const pcl::PointXYZ& a, const pcl::PointXYZ& b) { return a.x < b.x; });
+
+        for (int col = 0; col < 2; ++col) { // 0 = y, 1 = z
+            std::vector<double> vals(pts.size());
+            for (size_t i = 0; i < pts.size(); ++i) vals[i] = (col == 0) ? pts[i].y : pts[i].z;
+
+            double med = medianValue(vals);
+
+            std::vector<double> devs(vals.size());
+            for (size_t i = 0; i < vals.size(); ++i) devs[i] = std::abs(vals[i] - med);
+            double mad = medianValue(devs);
+
+            double scale;
+            if (mad > 1e-9) {
+                scale = 1.4826 * mad;
+            }
+            else {
+                double mean = 0.0;
+                for (double v : vals) mean += v;
+                mean /= vals.size();
+                double var = 0.0;
+                for (double v : vals) { double d = v - mean; var += d * d; }
+                var /= vals.size();
+                scale = std::sqrt(var);
+            }
+
+            if (scale > 1e-9) {
+                std::vector<pcl::PointXYZ> kept;
+                kept.reserve(pts.size());
+                for (size_t i = 0; i < pts.size(); ++i) {
+                    if (std::abs(vals[i] - med) < sigma * scale) kept.push_back(pts[i]);
+                }
+                if (kept.size() >= 5) pts = kept;
+            }
+        }
+        return pts;
+    }
+
+    // å¯¹åº” FeatureResultï¼ˆä»…ä¿ç•™ ok/ç´¢å¼•/ç‚¹ï¼‰
+    struct CornerResult {
+        bool ok = false;
+        int leftIdx = -1;
+        int rightIdx = -1;
+        pcl::PointXYZ left;
+        pcl::PointXYZ right;
+    };
+
+    // å¯¹åº” process_scanlineï¼šå•æ¡æ‰«æçº¿å†…æ£€æµ‹ç„Šç¼å¡å£å·¦å³æ‹è§’
+    CornerResult processScanline(const std::vector<TimestampedPoint>& linePts) {
+        CornerResult r;
+        const int n = static_cast<int>(linePts.size());
+        if (n < 30) return r;
+
+        std::vector<double> z_arr(n), y_arr(n);
+        for (int i = 0; i < n; ++i) {
+            z_arr[i] = linePts[i].z;
+            y_arr[i] = linePts[i].y;
+        }
+
+        // 0) ä¸­å€¼å»å™ªï¼šå­¤ç«‹ z å°–å³°ç”¨å±€éƒ¨ä¸­å€¼æ›¿æ¢
+        const int dw = 5;
+        for (int i = dw; i < n - dw; ++i) {
+            std::vector<double> local;
+            local.reserve(2 * dw + 1);
+            for (int j = i - dw; j <= i + dw; ++j) local.push_back(z_arr[j]);
+            double med = medianValue(local);
+            double dev = std::abs(z_arr[i] - med);
+
+            std::vector<double> devs;
+            devs.reserve(local.size());
+            for (double v : local) devs.push_back(std::abs(v - med));
+            double local_mad = medianValue(devs) * 1.4826;
+            double noise = std::max(local_mad, 0.01);
+            if (dev > 5.0 * noise) z_arr[i] = med;
+        }
+
+        // 1) å¹³æ»‘ï¼ˆè¾¹ç¼˜æ”¶ç¼©çš„æ»‘åŠ¨å¹³å‡ï¼‰
+        int win = std::max(5, n / 50);
+        if (win % 2 == 0) win += 1;
+        std::vector<double> z_s(n);
+        {
+            const int half = win / 2;
+            for (int i = 0; i < n; ++i) {
+                int lo = std::max(0, i - half);
+                int hi = std::min(n, i + half + 1);
+                double sum = 0.0;
+                for (int j = lo; j < hi; ++j) sum += z_arr[j];
+                z_s[i] = sum / (hi - lo);
+            }
+        }
+
+        // 2) æ–œç‡ dz/dy
+        const int sw = std::max(3, n / 60);
+        std::vector<double> slope(n, 0.0);
+        for (int i = sw; i < n - sw; ++i) {
+            double dy = y_arr[i + sw] - y_arr[i - sw];
+            double dz = z_s[i + sw] - z_s[i - sw];
+            if (std::abs(dy) > 1e-9) slope[i] = dz / dy;
+        }
+        std::vector<double> abs_slope(n);
+        for (int i = 0; i < n; ++i) abs_slope[i] = std::abs(slope[i]);
+
+        // 3) åŸºçº¿å™ªå£°ä¸é˜ˆå€¼
+        std::vector<double> valid(abs_slope.begin() + sw, abs_slope.begin() + (n - sw));
+        if (valid.empty()) return r;
+        double baseline = medianValue(valid);
+        double threshold = std::max(baseline * 4.0, 0.08);
+
+        // 4) è¿ç»­æ´»è·ƒåŒº
+        struct Region { int s; int e; };
+        std::vector<Region> regions;
+        bool in_region = false;
+        int start = 0;
+        for (int i = sw; i < n - sw; ++i) {
+            if (abs_slope[i] > threshold && !in_region) {
+                start = i; in_region = true;
+            }
+            else if (abs_slope[i] <= threshold && in_region) {
+                regions.push_back({ start, i });
+                in_region = false;
+            }
+        }
+        if (in_region) regions.push_back({ start, n - sw });
+
+        if (regions.size() < 2) return r;
+
+        // 5) åˆå¹¶ç›¸é‚»åŒå·åŒº
+        std::vector<Region> merged;
+        merged.push_back(regions[0]);
+        for (size_t k = 1; k < regions.size(); ++k) {
+            int s = regions[k].s, e = regions[k].e;
+            int prev_s = merged.back().s, prev_e = merged.back().e;
+
+            double dy_prev = y_arr[prev_e] - y_arr[prev_s];
+            double dz_prev = z_s[prev_e] - z_s[prev_s];
+            double slope_prev = std::abs(dy_prev) > 1e-9 ? dz_prev / dy_prev : 0.0;
+
+            double dy_cur = y_arr[e] - y_arr[s];
+            double dz_cur = z_s[e] - z_s[s];
+            double slope_cur = std::abs(dy_cur) > 1e-9 ? dz_cur / dy_cur : 0.0;
+
+            int gap = s - prev_e;
+            bool same_sign = (slope_prev * slope_cur) > 0;
+
+            if (gap < 3 * win && same_sign) {
+                merged.back().e = e;
+            }
+            else {
+                merged.push_back({ s, e });
+            }
+        }
+
+        // 6) æŒ‰å®½åº¦ä¸ z å¹…å€¼è¿‡æ»¤å€™é€‰è¾¹
+        struct Cand { int s; int e; double amp; };
+        std::vector<Cand> candidates;
+        int min_width = std::max(3, win / 3);
+        for (const auto& rg : merged) {
+            int width = rg.e - rg.s;
+            if (width < min_width) continue;
+            double z_amp = std::abs(z_s[rg.e] - z_s[rg.s]);
+            if (z_amp < 0.15) continue;
+            candidates.push_back({ rg.s, rg.e, z_amp });
+        }
+
+        if (candidates.size() < 2) return r;
+
+        // 7) æ‰¾æœ€ä¼˜å¯¹ï¼šä¸€å‡ä¸€é™ã€ä¸­é—´å¹³é¡¶
+        int best_s1 = -1, best_s2 = -1, best_e2 = -1;
+        double best_score = -1.0;
+        for (size_t i = 0; i + 1 < candidates.size(); ++i) {
+            int s1 = candidates[i].s, e1 = candidates[i].e;
+            double amp1 = candidates[i].amp;
+            int s2 = candidates[i + 1].s, e2 = candidates[i + 1].e;
+            double amp2 = candidates[i + 1].amp;
+
+            int gap = s2 - e1;
+
+            double dy1 = y_arr[e1] - y_arr[s1];
+            double dz1 = z_s[e1] - z_s[s1];
+            double slope1 = std::abs(dy1) > 1e-9 ? dz1 / dy1 : 0.0;
+
+            double dy2 = y_arr[e2] - y_arr[s2];
+            double dz2 = z_s[e2] - z_s[s2];
+            double slope2 = std::abs(dy2) > 1e-9 ? dz2 / dy2 : 0.0;
+
+            if (slope1 * slope2 >= 0) continue;
+
+            if (gap > 5) {
+                int cnt = s2 - e1;
+                if (cnt > 1) {
+                    double mean = 0.0;
+                    for (int j = e1; j < s2; ++j) mean += z_s[j];
+                    mean /= cnt;
+                    double var = 0.0;
+                    for (int j = e1; j < s2; ++j) { double d = z_s[j] - mean; var += d * d; }
+                    var /= cnt;
+                    if (std::sqrt(var) > 0.3) continue;
+                }
+            }
+
+            double score = (amp1 + amp2) * (1.0 / (1.0 + std::abs(gap - 10) / 50.0));
+            if (score > best_score) {
+                best_score = score;
+                best_s1 = s1;
+                best_s2 = s2;
+                best_e2 = e2;
+            }
+        }
+
+        if (best_score < 0.0) return r;
+
+        // 8) ç²¾ä¿®æ‹è§’åˆ°ç²¾ç¡®è¿‡æ¸¡ç‚¹
+        int cL = refineCorner(abs_slope, best_s1, -1, sw, threshold * 0.5);
+        int cR = refineCorner(abs_slope, best_e2, 1, sw, threshold * 0.5);
+
+        if (cL >= cR) return r;
+
+        r.ok = true;
+        r.leftIdx = cL;
+        r.rightIdx = cR;
+        r.left = pcl::PointXYZ((float)linePts[cL].x, (float)linePts[cL].y, (float)linePts[cL].z);
+        r.right = pcl::PointXYZ((float)linePts[cR].x, (float)linePts[cR].y, (float)linePts[cR].z);
+        return r;
+    }
+
+    // å¯¹åº” fit_and_resampleï¼šx-z å¹³é¢æœ€å°äºŒä¹˜åœ†æ‹Ÿåˆ + æŒ‰è§’åº¦å‡åŒ€é‡é‡‡æ ·
+    std::vector<pcl::PointXYZ> fitAndResampleCircle(const std::vector<pcl::PointXYZ>& input, int n_samples) {
+        std::vector<pcl::PointXYZ> pts = input;
+        std::sort(pts.begin(), pts.end(),
+            [](const pcl::PointXYZ& a, const pcl::PointXYZ& b) { return a.x < b.x; });
+
+        // MAD é¢„æ»¤æ³¢ï¼ˆå¯¹åº” fit_and_resample å†…éƒ¨çš„ y/z MAD å»é‡ï¼‰
+        pts = madFilter(pts, 3.5);
+
+        int n = static_cast<int>(pts.size());
+        if (n < 5) return {};
+
+        std::vector<double> xs(n), ys(n), zs(n);
+        for (int i = 0; i < n; ++i) {
+            xs[i] = pts[i].x; ys[i] = pts[i].y; zs[i] = pts[i].z;
+        }
+
+        double cx = 0.0, cz = 0.0, R = 0.0;
+
+        // è¿­ä»£åœ†æ‹Ÿåˆå»é‡ï¼ˆ3 æ¬¡ï¼‰
+        for (int iter = 0; iter < 3; ++iter) {
+            Eigen::MatrixXd A(n, 3);
+            Eigen::VectorXd b(n);
+            for (int i = 0; i < n; ++i) {
+                A(i, 0) = 2.0 * xs[i];
+                A(i, 1) = 2.0 * zs[i];
+                A(i, 2) = 1.0;
+                b(i) = xs[i] * xs[i] + zs[i] * zs[i];
+            }
+            Eigen::Vector3d sol = A.colPivHouseholderQr().solve(b);
+            cx = sol(0);
+            cz = sol(1);
+            double temp = sol(2) + cx * cx + cz * cz;
+            R = temp > 0.0 ? std::sqrt(temp) : 0.0;
+
+            std::vector<double> resid(n);
+            for (int i = 0; i < n; ++i) {
+                double dist = std::sqrt((xs[i] - cx) * (xs[i] - cx) + (zs[i] - cz) * (zs[i] - cz));
+                resid[i] = std::abs(dist - R);
+            }
+            double med_r = medianValue(resid);
+            std::vector<double> resid_dev(n);
+            for (int i = 0; i < n; ++i) resid_dev[i] = std::abs(resid[i] - med_r);
+            double mad_r = medianValue(resid_dev) * 1.4826;
+            if (mad_r < 1e-9) break;
+
+            double thresh = med_r + 3.0 * mad_r;
+            std::vector<double> nxs, nys, nzs;
+            nxs.reserve(n); nys.reserve(n); nzs.reserve(n);
+            bool all_kept = true;
+            int kept_cnt = 0;
+            for (int i = 0; i < n; ++i) {
+                if (resid[i] <= thresh) {
+                    nxs.push_back(xs[i]); nys.push_back(ys[i]); nzs.push_back(zs[i]);
+                    ++kept_cnt;
+                }
+                else {
+                    all_kept = false;
+                }
+            }
+            if (all_kept || kept_cnt < 10) break;
+            xs.swap(nxs); ys.swap(nys); zs.swap(nzs);
+            n = static_cast<int>(xs.size());
+        }
+
+        // ç¡®å®šè§’åº¦èŒƒå›´ï¼ˆå¼§ < 180Â°ï¼‰
+        std::vector<double> angles(n);
+        for (int i = 0; i < n; ++i) angles[i] = std::atan2(zs[i] - cz, xs[i] - cx);
+
+        int n_edge = std::min(5, n / 4);
+        double med_first = medianValue(std::vector<double>(angles.begin(), angles.begin() + n_edge));
+        double med_last = medianValue(std::vector<double>(angles.end() - n_edge, angles.end()));
+
+        double ang_start, ang_end;
+        if (med_first <= med_last) {
+            ang_start = *std::min_element(angles.begin(), angles.begin() + n_edge);
+            ang_end = *std::max_element(angles.end() - n_edge, angles.end());
+        }
+        else {
+            ang_start = *std::max_element(angles.begin(), angles.begin() + n_edge);
+            ang_end = *std::min_element(angles.end() - n_edge, angles.end());
+        }
+
+        // æ²¿å¼§å‡åŒ€é‡‡æ · n_samples ä¸ªç‚¹ï¼Œy æ²¿ x çº¿æ€§æ’å€¼
+        std::vector<pcl::PointXYZ> result;
+        result.reserve(n_samples);
+        for (int i = 0; i < n_samples; ++i) {
+            double frac = (n_samples > 1) ? (double)i / (n_samples - 1) : 0.0;
+            double a = ang_start + (ang_end - ang_start) * frac;
+            double x_arc = cx + R * std::cos(a);
+            double z_arc = cz + R * std::sin(a);
+            double y_arc = interpolateLinear(xs, ys, x_arc);
+            result.push_back(pcl::PointXYZ((float)x_arc, (float)y_arc, (float)z_arc));
+        }
+        return result;
+    }
+
+} // namespace
+
+// å…¬å¼€å…¥å£ï¼šæŒ‰æ‰«æçº¿æ£€æµ‹å·¦å³æ‹è§’ -> MAD å»å™ª -> åœ†æ‹Ÿåˆé‡é‡‡æ · -> è¾“å‡ºå·¦å³ç„Šç¼ç‚¹
+void WeldRecongnition::detectWeldLeftRight(
+    const std::vector<TimestampedPoint>& cloud,
+    std::vector<weldStruct>& leftWeld,
+    std::vector<weldStruct>& rightWeld,
+    int num_samples)
+{
+    leftWeld.clear();
+    rightWeld.clear();
+    if (cloud.empty()) return;
+
+    // æŒ‰è¾“å…¥é¡ºåºæŠŠè¿ç»­ç›¸åŒ timestamp çš„ç‚¹å½’ä¸ºä¸€æ¡æ‰«æçº¿ï¼ˆç­‰ä»· Python main çš„é¡ºåºåˆ†ç»„ï¼‰
+    std::vector<std::vector<TimestampedPoint>> scanlines;
+    bool first = true;
+    std::string cur_ts;
+    for (const auto& p : cloud) {
+        if (first || cur_ts != p.timestamp) {
+            first = false;
+            cur_ts = p.timestamp;
+            scanlines.push_back({});
+        }
+        scanlines.back().push_back(p);
+    }
+
+    std::vector<pcl::PointXYZ> left_raw, right_raw;
+    for (const auto& line : scanlines) {
+        CornerResult cr = processScanline(line);
+        if (cr.ok) {
+            left_raw.push_back(cr.left);
+            right_raw.push_back(cr.right);
+        }
+    }
+
+    auto toWeld = [](const std::vector<pcl::PointXYZ>& arc, const std::string& tag) {
+        std::vector<weldStruct> out;
+        out.reserve(arc.size());
+        for (const auto& p : arc) {
+            weldStruct w;
+            w.timestamp = tag;
+            w.point = p;
+            w.rx = w.ry = w.rz = w.width = 0.0;
+            out.push_back(w);
+        }
+        return out;
+    };
+
+    if (left_raw.size() >= 5) {
+        std::vector<pcl::PointXYZ> clean = madFilter(left_raw);
+        leftWeld = toWeld(fitAndResampleCircle(clean, num_samples), "left");
+    }
+    if (right_raw.size() >= 5) {
+        std::vector<pcl::PointXYZ> clean = madFilter(right_raw);
+        rightWeld = toWeld(fitAndResampleCircle(clean, num_samples), "right");
+    }
 }

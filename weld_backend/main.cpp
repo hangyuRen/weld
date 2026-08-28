@@ -221,6 +221,74 @@ int main() {
         }
         });
 
+    // 急停：调用 robot SDK 的 setEstop(true) 停止 A、B 两臂
+    svr.Post("/estop", [&](const httplib::Request& req, httplib::Response& res) {
+        res.set_header("Access-Control-Allow-Origin", "*");
+        try {
+            bool anyConnected = false;
+            bool allOk = true;
+
+            if (robotA->m_pCmApi->isConnected()) {
+                anyConnected = true;
+                if (robotA->m_pMot->setEstop(true) != 0) allOk = false;
+            }
+            if (robotB->m_pCmApi->isConnected()) {
+                anyConnected = true;
+                if (robotB->m_pMot->setEstop(true) != 0) allOk = false;
+            }
+
+            if (!anyConnected) {
+                res.status = 500;
+                res.set_content(u8R"({"status":"fail","message":"请先连接机械臂"})", "application/json");
+            }
+            else if (!allOk) {
+                res.status = 500;
+                res.set_content(u8R"({"status":"fail","message":"急停触发失败"})", "application/json");
+            }
+            else {
+                res.set_content(u8R"({"status":"success","message":"急停已触发"})", "application/json");
+            }
+        }
+        catch (...) {
+            res.status = 500;
+            res.set_content(u8R"({"status":"fail","message":"急停触发异常"})", "application/json");
+        }
+        });
+
+    // 取消急停：调用 robot SDK 的 setEstop(false) 释放 A、B 两臂
+    svr.Post("/estop/cancel", [&](const httplib::Request& req, httplib::Response& res) {
+        res.set_header("Access-Control-Allow-Origin", "*");
+        try {
+            bool anyConnected = false;
+            bool allOk = true;
+
+            if (robotA->m_pCmApi->isConnected()) {
+                anyConnected = true;
+                if (robotA->m_pMot->setEstop(false) != 0) allOk = false;
+            }
+            if (robotB->m_pCmApi->isConnected()) {
+                anyConnected = true;
+                if (robotB->m_pMot->setEstop(false) != 0) allOk = false;
+            }
+
+            if (!anyConnected) {
+                res.status = 500;
+                res.set_content(u8R"({"status":"fail","message":"请先连接机械臂"})", "application/json");
+            }
+            else if (!allOk) {
+                res.status = 500;
+                res.set_content(u8R"({"status":"fail","message":"取消急停失败"})", "application/json");
+            }
+            else {
+                res.set_content(u8R"({"status":"success","message":"急停已取消"})", "application/json");
+            }
+        }
+        catch (...) {
+            res.status = 500;
+            res.set_content(u8R"({"status":"fail","message":"取消急停异常"})", "application/json");
+        }
+        });
+
     // 管径 -> 扫描程序匹配 (mm)，新程序在此处添加对应条目
     std::map<int, std::string> scanPrograms = {
         {300, "SCAN_300.PRG"},
@@ -302,33 +370,35 @@ int main() {
                 robotB->m_pVm->load("/usr/codesys/hsc3_app/script/", lastScanProgram);
 
                 // 将计算得到的距离写入工件坐标，用于扫描定位
-                /*LocData posA;
+                LocData posA;
                 robotA->m_pMot->getWorkpiece(0, 1, posA);
                 posA[1] += 530 - dis * 1000;
-                robotA->m_pMot->setWorkpiece(0, 1, posA);*/
+                robotA->m_pMot->setWorkpiece(0, 1, posA);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 robotA->m_pVm->start(lastScanProgram);
 
                 // 机械臂B延时10s，防止碰撞
-                /*std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+                std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 
                 LocData posB;
                 robotB->m_pMot->getWorkpiece(0, 1, posB);
                 posB[1] += 530 - dis * 1000;
                 robotB->m_pMot->setWorkpiece(0, 1, posB);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-                robotB->m_pVm->start(lastScanProgram);*/
+                robotB->m_pVm->start(lastScanProgram);
 
                 laserA->cloud->clear();
                 laserA->tsCloud.clear();
                 laserB->cloud->clear();
                 laserB->tsCloud.clear();
                 laserA->asyncStart();
-                //laserB->asyncStart();
+                laserB->asyncStart();
 
                 // 恢复原始工件坐标，防止下次焊接出问题
-                /*posA[1] -= 530 - dis * 1000;
-                robotA->m_pMot->setWorkpiece(0, 1, posA);*/
+                posA[1] -= 530 - dis * 1000;
+                robotA->m_pMot->setWorkpiece(0, 1, posA);
+                posB[1] -= 530 - dis * 1000;
+                robotB->m_pMot->setWorkpiece(0, 1, posB);
 
                 res.status = 200;
                 res.set_content(u8R"({"status":"success","message":"激光扫描已启动"})", "application/json");
@@ -378,7 +448,7 @@ int main() {
 
             std::cout << "image saved: pic/001.jpg, size: " << req.body.size() << " bytes" << std::endl;
 
-            // Compute pipe distance via the manual depth service (1.py on port 8001)
+            // Compute pipe distance via the manual depth service (2.py on port 8000, path /detect-distance/manual)
             double dis = Calculate::getDistanceManual("pic/001.jpg", pixelX, pixelY);
             std::cout << "pipe distance: " << dis << " cm" << std::endl;
 
@@ -412,15 +482,36 @@ int main() {
                 robotA->m_pVm->load("/usr/codesys/hsc3_app/script/", lastScanProgram);
                 robotB->m_pVm->load("/usr/codesys/hsc3_app/script/", lastScanProgram);
 
+                // 将计算得到的距离写入工件坐标，用于扫描定位
+                LocData posA;
+                robotA->m_pMot->getWorkpiece(0, 1, posA);
+                posA[1] += 530 - dis * 1000;
+                robotA->m_pMot->setWorkpiece(0, 1, posA);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 robotA->m_pVm->start(lastScanProgram);
 
-                // 启动激光扫描
+                // 机械臂B延时10s，防止碰撞
+                std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+                LocData posB;
+                robotB->m_pMot->getWorkpiece(0, 1, posB);
+                posB[1] += 530 - dis * 1000;
+                robotB->m_pMot->setWorkpiece(0, 1, posB);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                robotB->m_pVm->start(lastScanProgram);
+
                 laserA->cloud->clear();
                 laserA->tsCloud.clear();
                 laserB->cloud->clear();
                 laserB->tsCloud.clear();
                 laserA->asyncStart();
+                laserB->asyncStart();
+
+                // 恢复原始工件坐标，防止下次焊接出问题
+                posA[1] -= 530 - dis * 1000;
+                robotA->m_pMot->setWorkpiece(0, 1, posA);
+                posB[1] -= 530 - dis * 1000;
+                robotB->m_pMot->setWorkpiece(0, 1, posB);
 
                 res.status = 200;
                 res.set_content(R"({"status":"success","message":"手动扫描已启动"})", "application/json");
@@ -446,7 +537,7 @@ int main() {
         try {
             res.set_header("Access-Control-Allow-Origin", "*");
 
-            if (/*!laserB->isOver ||*/ !laserA->isOver) {
+            if (!laserB->isOver || !laserA->isOver) {
                 res.set_content(u8R"({"status":"fail","message":"请等待激光扫描完成"})", "application/json");
                 return;
             }
@@ -500,23 +591,23 @@ int main() {
                 json << "]" << (end ? "" : ",");
                 };
 
-            auto writeLR = [&]() {
+            auto writeLR = [&](robotConnect* robot, const std::vector<weldStruct>& welds) {
                 // 1. 固定寄存器范围
                 const int32_t START_REG_INDEX = 11; // 起始寄存器号
                 const int32_t POINTS_COUNT = 20;    // 写入点数
 
-                int32_t configA = 0;
-                robotA->m_pMot->getConfig(0, configA);
+                int32_t config = 0;
+                robot->m_pMot->getConfig(0, config);
 
                 // 2. 准备 LocPos 数据模板
                 LocPos posData;
                 posData.ufNum = 1;     // 用户号，默认为 1
                 posData.utNum = 0;     // 工具号，默认为 0
-                posData.config = configA;     // 配置字，通常为 0，根据具体 CONFIG 取值逻辑
+                posData.config = config;     // 配置字，通常为 0，根据具体 CONFIG 取值逻辑
 
-                // 3. 遍历 weldA 并写入寄存器
-                for (int i = 0; i < POINTS_COUNT && i < static_cast<int>(weldA_resampled.size()); ++i) {
-                    const weldStruct& currentWeld = weldA_resampled[i];
+                // 3. 遍历焊接点并写入寄存器
+                for (int i = 0; i < POINTS_COUNT && i < static_cast<int>(welds.size()); ++i) {
+                    const weldStruct& currentWeld = welds[i];
 
                     // 清空之前的数据防止累积
                     posData.vecPos.clear();
@@ -537,7 +628,7 @@ int main() {
 
                     // 6. 调用接口写入
                     // 参数 gpId 固定为 0
-                    Hsc3::Comm::HMCErrCode errCode = robotA->m_pVar->setLR(0, currentIndex, posData);
+                    Hsc3::Comm::HMCErrCode errCode = robot->m_pVar->setLR(0, currentIndex, posData);
 
                     if (errCode == 0) { // 返回 0 表示成功，具体参见 HMCErrCode 定义
                         std::cout << "成功写入 LR[" << currentIndex << "]: ("
@@ -577,8 +668,9 @@ int main() {
 
             json << "}";
 
-            // 将结果写入 LR 寄存器
-            writeLR();
+            // 将结果写入 LR 寄存器（机械臂 A、B 分别写入）
+            writeLR(robotA, weldA_resampled);
+            writeLR(robotB, weldB_resampled);
             res.set_content(json.str(), "application/json");
 
         }
@@ -758,10 +850,10 @@ int main() {
 
             // ====================================robotB====================================
             Hsc3::Comm::CommApi apiB("");
-            apiA.connect("192.168.1.72", 23234);
+            apiB.connect("192.168.1.72", 23234);
             std::string strCmdB = "arcWaveWeld.get_WaveChannel(1)";
             std::string strRetB;
-            apiA.execCmd(strCmdB, strRetB, Hsc3::Comm::PRIORITY_HIGH);
+            apiB.execCmd(strCmdB, strRetB, Hsc3::Comm::PRIORITY_HIGH);
 
             std::vector<std::string> partsB;
             std::stringstream ssB(strRetB);
@@ -823,15 +915,19 @@ int main() {
             robotA->m_pVar->setR(52, 1);
             robotA->m_pVm->start("RUN.PRG");
 
-            /*std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-            robotB->m_pVm->start("RUN.PRG");*/
+            // 机械臂B延时10s，防止碰撞
+            std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+            robotB->m_pVar->setR(52, 1);
+            robotB->m_pVm->start("RUN.PRG");
 
             // 等待焊接完成: 轮询 R[52]，RUN.PRG 结束时置 R[52]=0
-            double weldStatus = 1;
-            int maxWait = 3000;  // 超时 300 秒 (100ms * 3000)
+            double weldStatusA = 1;
+            double weldStatusB = 1;
+            int maxWait = 6000;  // 超时 600 秒 (100ms * 6000)
             int waited = 0;
-            while (weldStatus != 0 && waited < maxWait) {
-                robotA->m_pVar->getR(52, weldStatus);
+            while ((weldStatusA != 0 || weldStatusB != 0) && waited < maxWait) {
+                robotA->m_pVar->getR(52, weldStatusA);
+                robotB->m_pVar->getR(52, weldStatusB);
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 waited++;
             }

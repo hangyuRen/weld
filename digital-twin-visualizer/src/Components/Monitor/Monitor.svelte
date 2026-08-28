@@ -261,13 +261,14 @@
         weldPointsA = weldPointsB = null;
         weldLineA = weldLineB = null;
 
-        // --- 点云 ---
-        cloudObjA = buildCloudPoints(cloudA, 0xffffff);
+        // --- 点云（整体按获取方式着色：自动=蓝、手动=橙）---
+        const cloudColor = acquireMode === "manual" ? MANUAL_CLOUD_COLOR : AUTO_CLOUD_COLOR;
+        cloudObjA = buildCloudPoints(cloudA, cloudColor);
         if (cloudObjA) {
             cloudObjA.userData = { kind: "cloud", arm: "A" };
             scene.add(cloudObjA);
         }
-        cloudObjB = buildCloudPoints(cloudB, 0x00aaff);
+        cloudObjB = buildCloudPoints(cloudB, cloudColor);
         if (cloudObjB) {
             cloudObjB.userData = { kind: "cloud", arm: "B" };
             scene.add(cloudObjB);
@@ -505,6 +506,33 @@
         }
     }
 
+    // 急停：调用后端 /estop 停止 A、B 两臂；再次点击调用 /estop/cancel 取消急停
+    let isEstopping = false;
+    let isEstopped = false;
+
+    async function toggleEstop() {
+        if (isEstopping) return;
+        isEstopping = true;
+        try {
+            const url = isEstopped
+                ? "http://localhost:8082/estop/cancel"
+                : "http://localhost:8082/estop";
+            const res = await fetch(url, { method: "POST" });
+            const data = await res.json().catch(() => ({}));
+            const ok = res.ok && data.status !== "fail";
+            if (ok) {
+                isEstopped = !isEstopped;
+            }
+            toastMessage = data.message || (ok ? (isEstopped ? "急停已取消" : "急停已触发") : "急停操作失败");
+        } catch (e) {
+            toastMessage = "急停失败: 无法访问后端服务器";
+        } finally {
+            isEstopping = false;
+            showToast = true;
+            setTimeout(() => showToast = false, 3000);
+        }
+    }
+
     let cam1Video: HTMLVideoElement;
     let cam2Video: HTMLVideoElement;
     let cam3Video: HTMLVideoElement;
@@ -538,6 +566,7 @@
     async function captureFrame() {
         // 1. 检查机械臂连接
         if (!$isRobotConnected) {
+            isAcquiringPointCloud = false;
             toastMessage = "请先连接机械臂";
             showToast = true;
             setTimeout(() => showToast = false, 3000);
@@ -546,6 +575,7 @@
 
         // 2. 检查参数完整性
         if (!pipeDiameter || !pipeThickness || !current || !voltage || !speed) {
+            isAcquiringPointCloud = false;
             toastMessage = "请完整输入工艺参数";
             showToast = true;
             setTimeout(() => showToast = false, 3000);
@@ -570,12 +600,52 @@
     // Default mode is auto.
     let acquireMode: "auto" | "manual" = "auto";
 
+    // 点云获取中状态：点击获取点云后置 true，扫描完成后置 false。
+    let isAcquiringPointCloud = false;
+    let pointCloudPollTimer: ReturnType<typeof setInterval> | null = null;
+
+    // 流程顺序状态：获取点云 -> 焊缝特征点筛选 -> 一键焊接
+    let pointCloudReady = false;   // 成功获取点云后置 true
+    let weldScreened = false;      // 焊缝特征点筛选确认后置 true
+
+    // 点云颜色（按获取方式区分）：自动=蓝，手动=橙。
+    const AUTO_CLOUD_COLOR = 0x00aaff;
+    const MANUAL_CLOUD_COLOR = 0xffa500;
+
     function startAcquirePointCloud(mode: "auto" | "manual") {
         acquireMode = mode;
         if (mode === "auto") {
+            isAcquiringPointCloud = true;
             captureFrame();
         } else {
             manualCapture();
+        }
+    }
+
+    function startPointCloudPolling() {
+        stopPointCloudPolling();
+        pointCloudPollTimer = setInterval(async () => {
+            try {
+                const res = await fetch("http://localhost:8082/weld");
+                const data = await res.json();
+                if (data.status === "success") {
+                    stopPointCloudPolling();
+                    isAcquiringPointCloud = false;
+                    pointCloudReady = true;
+                    toastMessage = "获取点云成功";
+                    showToast = true;
+                    setTimeout(() => showToast = false, 3000);
+                }
+            } catch (e) {
+                // 网络异常：继续轮询
+            }
+        }, 1000);
+    }
+
+    function stopPointCloudPolling() {
+        if (pointCloudPollTimer) {
+            clearInterval(pointCloudPollTimer);
+            pointCloudPollTimer = null;
         }
     }
 
@@ -742,6 +812,7 @@
         }
 
         isSubmittingManual = true;
+        isAcquiringPointCloud = true;
         try {
             const res = await fetch("http://localhost:8082/detect/manual", {
                 method: "POST",
@@ -758,10 +829,13 @@
             if (res.ok && data.status !== "fail") {
                 toastMessage = "像素坐标已发送" + (data.message ? ": " + data.message : "");
                 showManualCapture = false;
+                startPointCloudPolling();
             } else {
+                isAcquiringPointCloud = false;
                 toastMessage = "发送失败" + (data.message ? ": " + data.message : "");
             }
         } catch (e) {
+            isAcquiringPointCloud = false;
             toastMessage = "发送失败: 无法访问后端服务器";
         } finally {
             isSubmittingManual = false;
@@ -811,11 +885,14 @@
 
             let flag = data.status;
             if (flag === "fail") {
+                isAcquiringPointCloud = false;
                 toastMessage = "点云获取失败: " + data.message;
             } else {
                 toastMessage = "点云获取中";
+                startPointCloudPolling();
             }
         } catch (e) {
+            isAcquiringPointCloud = false;
             toastMessage = "点云获取失败: 无法访问后端服务器";
         } finally {
             showToast = true;
@@ -865,6 +942,9 @@
             toastMessage = "焊接失败: 无法访问后端服务器";
         } finally {
             isWelding = false;
+            // 焊接结束后恢复流程初始状态：仅获取点云可点，其余置灰
+            pointCloudReady = false;
+            weldScreened = false;
             showToast = true;
             setTimeout(() => showToast = false, 3000);
         }
@@ -980,6 +1060,7 @@
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.status !== "fail") {
                 toastMessage = "焊接点已更新" + (data.message ? ": " + data.message : "");
+                weldScreened = true;
                 // 同步回持久化 store，避免刷新后丢失手工修改
                 const prev = ($lastPointCloudData as any) || {};
                 lastPointCloudData.set({ ...prev, weldA, weldB });
@@ -1013,6 +1094,7 @@
         });
 
     onDestroy(() => {
+        stopPointCloudPolling();
         if (modbusClient) {
             modbusClient.stop();
             modbusClient = null;
@@ -1032,7 +1114,7 @@
     </div>
 {/if}
 
-<div class="fixed top-4 right-4 z-[100]">
+<div class="fixed top-4 right-4 z-[100] flex items-center gap-2">
     <button
             on:click={connectRobots}
             class="btn btn-outline btn-info shadow-lg"
@@ -1048,6 +1130,19 @@
             已连接机械臂
         {:else}
             连接机械臂
+        {/if}
+    </button>
+
+    <button
+            on:click={toggleEstop}
+            class="btn {isEstopped ? 'btn-warning' : 'btn-error'} shadow-lg"
+            disabled={isEstopping || !$isRobotConnected}
+    >
+        {#if isEstopping}
+            <span class="loading loading-spinner loading-xs"></span>
+            {isEstopped ? '取消急停中...' : '急停中...'}
+        {:else}
+            {isEstopped ? '取消急停' : '急停'}
         {/if}
     </button>
 </div>
@@ -1196,21 +1291,23 @@
 
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 md:gap-4 flex-[5] min-h-0 overflow-y-auto xl:overflow-visible">
         <!-- 海康摄像头1 -->
-        <div class="bg-black rounded-xl border-2 border-gray-700 w-full min-h-[220px] xl:min-h-0 h-full overflow-hidden">
+        <div class="relative bg-black rounded-xl border-2 border-gray-700 w-full min-h-[220px] xl:min-h-0 h-full overflow-hidden">
             <video
                 bind:this={cam1Video}
                 autoplay muted playsinline
                 class="w-full h-full object-contain"
             ></video>
+            <span class="absolute top-2 right-2 text-xs text-white bg-black/50 px-2 py-0.5 rounded pointer-events-none">机械臂A末端摄像头</span>
         </div>
 
         <!-- 海康摄像头2 -->
-        <div class="bg-black rounded-xl border-2 border-gray-700 w-full min-h-[220px] xl:min-h-0 h-full overflow-hidden">
+        <div class="relative bg-black rounded-xl border-2 border-gray-700 w-full min-h-[220px] xl:min-h-0 h-full overflow-hidden">
             <video
                 bind:this={cam2Video}
                 autoplay muted playsinline
                 class="w-full h-full object-contain"
             ></video>
+            <span class="absolute top-2 right-2 text-xs text-white bg-black/50 px-2 py-0.5 rounded pointer-events-none">机械臂B末端摄像头</span>
         </div>
 
         <div class="flex gap-3 md:gap-4 min-w-0 min-h-[220px] xl:min-h-0 h-full">
@@ -1227,6 +1324,8 @@
                         bind:this={overlayCanvas}
                         class="absolute inset-0 pointer-events-none"
                 ></canvas>
+
+                <span class="absolute top-2 right-2 text-xs text-white bg-black/50 px-2 py-0.5 rounded pointer-events-none">球形摄像头</span>
             </div>
 
             <div class="w-40 flex flex-col gap-2 shrink-0 overflow-y-auto pr-1">
@@ -1272,17 +1371,22 @@
 
                 <div class="flex flex-col gap-1.5">
                 <div class="dropdown dropdown-end w-full">
-                    <button tabindex="0" class="btn btn-primary btn-sm w-full">
-                        获取点云
+                    <button tabindex="0" class="btn btn-primary btn-sm w-full" disabled={isAcquiringPointCloud}>
+                        {#if isAcquiringPointCloud}
+                            <span class="loading loading-spinner loading-xs"></span>
+                            获取点云中...
+                        {:else}
+                            获取点云
+                        {/if}
                     </button>
                     <ul tabindex="0" class="dropdown-content z-[1] menu menu-sm p-1 shadow bg-base-100 rounded-box w-full">
                         <li>
-                            <button class="w-full text-left" on:click={() => startAcquirePointCloud("auto")}>
+                            <button class="w-full text-left text-info" on:click={() => startAcquirePointCloud("auto")}>
                                 自动模式
                             </button>
                         </li>
                         <li>
-                            <button class="w-full text-left" on:click={() => startAcquirePointCloud("manual")}>
+                            <button class="w-full text-left text-warning" on:click={() => startAcquirePointCloud("manual")}>
                                 手动模式
                             </button>
                         </li>
@@ -1292,6 +1396,7 @@
                 <button
                         class="btn btn-secondary btn-sm w-full"
                         on:click={showPointCloud}
+                        disabled={!pointCloudReady}
                 >
                     焊缝特征点筛选
                 </button>
@@ -1299,7 +1404,7 @@
                 <button
                     class="btn btn-accent btn-sm w-full"
                     on:click={startWeld}
-                    disabled={isWelding}>
+                    disabled={!weldScreened || isWelding}>
                     {#if isWelding}
                         <span class="loading loading-spinner loading-xs"></span>
                         焊接中...
@@ -1428,7 +1533,7 @@
 
                     <button
                             class="btn btn-sm btn-error"
-                            on:click={() => showManualCapture = false}
+                            on:click={() => { showManualCapture = false; isAcquiringPointCloud = false; }}
                     >
                         关闭
                     </button>
