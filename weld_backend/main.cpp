@@ -8,6 +8,7 @@
 #include "LaserWorker.h"
 #include "WeldRecongnition.h"
 #include "Calculate.h"
+#include <mutex>
 
 namespace fs = std::filesystem;
 
@@ -106,6 +107,117 @@ std::vector<weldStruct> sampleAverageWeld(const std::vector<weldStruct>& data, s
     return result;
 }
 
+// =====================================================================
+// 算法二启动辅助：把“当前保存的点”(可能是 左+右 拼接、且前端增删过) 用 /weld2
+// 的初始左右点(initL/initR)作参照，复原每个点的左右属性与“同一条截面”配对序号；
+// 只保留左右点都还在的配对，按序号升序最多取 maxPairs 对（必含首尾），
+// 输出按 左0,右0,左1,右1,… 交错排列的点列，并给出平均槽宽 avgWidth。
+// =====================================================================
+static std::vector<weldStruct> pairLeftRightInterleave(
+    const std::vector<weldStruct>& cur,
+    const std::vector<weldStruct>& initL,
+    const std::vector<weldStruct>& initR,
+    int maxPairs,
+    double& avgWidth)
+{
+    avgWidth = 0.0;
+    if (initL.empty() || initR.empty()) return {};
+
+    // 前端没传回任何点时，退化为初始点对本身
+    std::vector<weldStruct> points = cur;
+    if (points.empty()) {
+        points = initL;
+        points.insert(points.end(), initR.begin(), initR.end());
+    }
+
+    const int nL = static_cast<int>(initL.size());
+    const int nR = static_cast<int>(initR.size());
+    const int nIdx = (nL > nR ? nL : nR); // 配对序号范围 [0, nIdx)
+
+    // 参照点：0..nL-1 为左，nL..nL+nR-1 为右
+    struct Ref { double x, y, z; bool isLeft; int idx; };
+    std::vector<Ref> refs;
+    refs.reserve(nL + nR);
+    for (int i = 0; i < nL; ++i) refs.push_back({ initL[i].point.x, initL[i].point.y, initL[i].point.z, true, i });
+    for (int i = 0; i < nR; ++i) refs.push_back({ initR[i].point.x, initR[i].point.y, initR[i].point.z, false, i });
+
+    // best[i] 记录第 i 个参照点命中最贴近的“当前点”下标（-1 表示无）
+    std::vector<int> bestL(nIdx, -1), bestR(nIdx, -1);
+    std::vector<double> bestLd(nIdx, 1e30), bestRd(nIdx, 1e30);
+    for (size_t pi = 0; pi < points.size(); ++pi) {
+        const auto& p = points[pi];
+        double bestD = 1e30;
+        const Ref* bestRef = nullptr;
+        for (const auto& r : refs) {
+            double dx = p.point.x - r.x, dy = p.point.y - r.y, dz = p.point.z - r.z;
+            double d = dx * dx + dy * dy + dz * dz;
+            if (d < bestD) { bestD = d; bestRef = &r; }
+        }
+        if (!bestRef) continue;
+        if (bestRef->isLeft) {
+            if (bestD < bestLd[bestRef->idx]) { bestLd[bestRef->idx] = bestD; bestL[bestRef->idx] = static_cast<int>(pi); }
+        }
+        else {
+            if (bestD < bestRd[bestRef->idx]) { bestRd[bestRef->idx] = bestD; bestR[bestRef->idx] = static_cast<int>(pi); }
+        }
+    }
+
+    // 收集左右都还在的配对（升序）
+    std::vector<std::pair<int, int>> pairs; // (idx of left in points, idx of right in points)
+    for (int i = 0; i < nIdx; ++i) {
+        if (bestL[i] >= 0 && bestR[i] >= 0) pairs.push_back({ bestL[i], bestR[i] });
+    }
+    if (pairs.empty()) return {};
+
+    // 平均槽宽：配对左右点间距均值
+    {
+        double sum = 0.0;
+        for (const auto& pr : pairs) {
+            const weldStruct& a = points[pr.first];
+            const weldStruct& b = points[pr.second];
+            double dx = a.point.x - b.point.x, dy = a.point.y - b.point.y, dz = a.point.z - b.point.z;
+            sum += std::sqrt(dx * dx + dy * dy + dz * dz);
+        }
+        avgWidth = sum / static_cast<double>(pairs.size());
+    }
+
+    // 最多取 maxPairs 对，且必含首、末对
+    std::vector<size_t> sel; // 指向 pairs 的下标
+    int total = static_cast<int>(pairs.size());
+    if (total <= maxPairs) {
+        for (int i = 0; i < total; ++i) sel.push_back(static_cast<size_t>(i));
+    }
+    else {
+        if (maxPairs <= 1) {
+            sel.push_back(0);
+        }
+        else {
+            for (int k = 0; k < maxPairs; ++k) {
+                double pos = static_cast<double>(k) * static_cast<double>(total - 1) / static_cast<double>(maxPairs - 1);
+                sel.push_back(static_cast<size_t>(std::lround(pos)));
+            }
+            // 去重并保证单调
+            std::vector<size_t> uni;
+            for (size_t v : sel) {
+                if (uni.empty() || uni.back() != v) uni.push_back(v);
+            }
+            // 强制首尾
+            uni.front() = 0;
+            uni.back() = static_cast<size_t>(total - 1);
+            sel = uni;
+        }
+    }
+
+    // 交错输出：左,右,左,右…
+    std::vector<weldStruct> out;
+    out.reserve(sel.size() * 2);
+    for (size_t s : sel) {
+        out.push_back(points[pairs[s].first]);
+        out.push_back(points[pairs[s].second]);
+    }
+    return out;
+}
+
 int main() {
     // 机械臂连接对象
     robotConnect* robotA = new robotConnect();
@@ -121,6 +233,7 @@ int main() {
 
     // =====================http==========================
     httplib::Server svr;
+    std::mutex robotCommandMutex;
 
     svr.Options(R"(/.*)", [](const httplib::Request&, httplib::Response& res) {
         res.set_header("Access-Control-Allow-Origin", "*");
@@ -288,6 +401,124 @@ int main() {
             res.set_content(u8R"({"status":"fail","message":"取消急停异常"})", "application/json");
         }
         });
+
+    // 将指定机械臂以低速关节运动复位到扫描程序的初始点。
+    // moveTo是异步下发运动命令；接口成功表示控制器已经接受命令。
+    auto resetRobotToJoint = [&](robotConnect* robot,
+                                 const GeneralPos& target,
+                                 const char* robotName,
+                                 httplib::Response& res) {
+        res.set_header("Access-Control-Allow-Origin", "*");
+
+        std::lock_guard<std::mutex> commandLock(robotCommandMutex);
+
+        if (!robot || !robot->m_pCmApi->isConnected()) {
+            res.status = 500;
+            res.set_content(
+                std::string("{\"status\":\"fail\",\"message\":\"") +
+                robotName + "未连接\"}",
+                "application/json"
+            );
+            return;
+        }
+
+        bool estopped = false;
+        Hsc3::Comm::HMCErrCode ret = robot->m_pMot->getEstop(estopped);
+        if (ret != 0 || estopped) {
+            res.status = 409;
+            res.set_content(
+                std::string("{\"status\":\"fail\",\"message\":\"") +
+                robotName + "处于急停状态，请先取消急停\"}",
+                "application/json"
+            );
+            return;
+        }
+
+        bool moving = false;
+        ret = robot->m_pMot->isMovingStatus(0, moving);
+        if (ret != 0) {
+            res.status = 500;
+            res.set_content(
+                std::string("{\"status\":\"fail\",\"message\":\"无法读取") +
+                robotName + "运动状态\"}",
+                "application/json"
+            );
+            return;
+        }
+        if (moving) {
+            res.status = 409;
+            res.set_content(
+                std::string("{\"status\":\"fail\",\"message\":\"") +
+                robotName + "正在运动，不能执行复位\"}",
+                "application/json"
+            );
+            return;
+        }
+
+        // 参考SDK Training_Move示例：T1、关节坐标系、低倍率、组使能。
+        if (robot->m_pMot->setOpMode(OP_T1) != 0 ||
+            robot->m_pMot->setWorkFrame(0, FRAME_JOINT) != 0 ||
+            robot->m_pMot->setJogVord(5) != 0 ||
+            robot->m_pMot->setGpEn(0, true) != 0) {
+            res.status = 500;
+            res.set_content(
+                std::string("{\"status\":\"fail\",\"message\":\"") +
+                robotName + "复位前置设置失败\"}",
+                "application/json"
+            );
+            return;
+        }
+
+        ret = robot->m_pMot->moveTo(0, target, false);
+        if (ret != 0) {
+            std::cout << robotName << "复位命令失败，错误码: " << ret << std::endl;
+            res.status = 500;
+            res.set_content(
+                std::string("{\"status\":\"fail\",\"message\":\"") +
+                robotName + "复位命令下发失败，错误码: " +
+                std::to_string(ret) + "\"}",
+                "application/json"
+            );
+            return;
+        }
+
+        std::cout << robotName << "复位命令已下发" << std::endl;
+        res.set_content(
+            std::string("{\"status\":\"success\",\"message\":\"") +
+            robotName + "正在复位\"}",
+            "application/json"
+        );
+    };
+
+    // 机械臂A复位到扫描程序P[9]。
+    svr.Post("/robot/a/reset", [&](const httplib::Request&, httplib::Response& res) {
+        GeneralPos target{};
+        target.isJoint = true;
+        target.ufNum = -1;
+        target.utNum = 0;
+        target.config = 0;
+        target.vecPos = {
+            0.0026332, -178.568808, 229.6947944,
+            0.0055652, 89.9972763, 0.0028015,
+            0.0, 0.0, 0.0
+        };
+        resetRobotToJoint(robotA, target, "机械臂A", res);
+    });
+
+    // 机械臂B复位到扫描程序P[7]。
+    svr.Post("/robot/b/reset", [&](const httplib::Request&, httplib::Response& res) {
+        GeneralPos target{};
+        target.isJoint = true;
+        target.ufNum = 1;
+        target.utNum = 0;
+        target.config = 0;
+        target.vecPos = {
+            0.0015435, -179.9989531, 229.2422257,
+            0.0053558, 89.9975322, -0.0073609,
+            0.0, 0.0, 0.0
+        };
+        resetRobotToJoint(robotB, target, "机械臂B", res);
+    });
 
     // 管径 -> 扫描程序匹配 (mm)，新程序在此处添加对应条目
     std::map<int, std::string> scanPrograms = {
@@ -533,6 +764,12 @@ int main() {
     float widthB = 0;
     std::vector<weldStruct> weldA_final;
     std::vector<weldStruct> weldB_final;
+
+    // 当前筛选算法：1 = /weld（算法一，焊缝最低点单线），2 = /weld2（算法二，左右两边点）
+    int weldMode = 1;
+    // 算法二初始左右点：作为配对参照（“同一截面”的左右必须同属一条焊缝）
+    std::vector<weldStruct> initLeftA, initRightA;
+    std::vector<weldStruct> initLeftB, initRightB;
     svr.Get("/weld", [&](const httplib::Request& req, httplib::Response& res) {
         try {
             res.set_header("Access-Control-Allow-Origin", "*");
@@ -569,6 +806,7 @@ int main() {
             std::vector<weldStruct> weldB_resampled = WeldRecongnition::fitAndResamplePath(weldB_offset, num_samples);
             weldA_final = weldA_resampled;
             weldB_final = weldB_resampled;
+            weldMode = 1;   // 算法一
 
             // --- 构造 JSON 返回 ---
             std::ostringstream json;
@@ -681,6 +919,89 @@ int main() {
 
         }
         });
+
+    // 点云扫描状态轮询接口（轻量，只判断两侧激光是否扫描完成，不计算焊缝、不写寄存器）
+    svr.Get("/weld/status", [&](const httplib::Request& req, httplib::Response& res) {
+        res.set_header("Access-Control-Allow-Origin", "*");
+        try {
+            if (laserB && laserA && laserB->isOver && laserA->isOver) {
+                res.set_content(u8R"({"status":"success","message":"点云扫描完成"})", "application/json");
+            }
+            else {
+                res.set_content(u8R"({"status":"pending","message":"激光扫描中，请稍候"})", "application/json");
+            }
+        }
+        catch (...) {
+            res.status = 500;
+            res.set_content("{\"status\":\"fail\"}", "application/json");
+        }
+        });
+
+    // 算法二：detectWeldLeftRight（按扫描线检测坡口左右拐角）
+    svr.Get("/weld2", [&](const httplib::Request& req, httplib::Response& res) {
+        try {
+            res.set_header("Access-Control-Allow-Origin", "*");
+
+            if (!laserB->isOver || !laserA->isOver) {
+                res.set_content(u8R"({"status":"fail","message":"请等待激光扫描完成"})", "application/json");
+                return;
+            }
+
+            // 算法二：按扫描线检测坡口左右拐角
+            const int num_samples = 20;
+            std::vector<weldStruct> leftA, rightA, leftB, rightB;
+            WeldRecongnition::detectWeldLeftRight(laserA->tsCloud, leftA, rightA, num_samples);
+            WeldRecongnition::detectWeldLeftRight(laserB->tsCloud, leftB, rightB, num_samples);
+
+            // 记录初始左右点对（前端可能随后编辑保存，用于 /start2 复原配对）
+            weldMode = 2;   // 算法二
+            initLeftA = leftA;  initRightA = rightA;
+            initLeftB = leftB;  initRightB = rightB;
+
+            // 合并左右焊缝点到 weldA / weldB，保持与 /weld 相同的四字段结构
+            std::vector<weldStruct> weldA, weldB;
+            weldA.insert(weldA.end(), leftA.begin(), leftA.end());
+            weldA.insert(weldA.end(), rightA.begin(), rightA.end());
+            weldB.insert(weldB.end(), leftB.begin(), leftB.end());
+            weldB.insert(weldB.end(), rightB.begin(), rightB.end());
+
+            // 构造 JSON 返回（与 /weld 结构一致；此处不写机器人 LR 寄存器）
+            std::ostringstream json;
+            json << "{\"status\":\"success\",";
+
+            auto writePoints = [&](const std::string& key, const std::vector<TimestampedPoint>& pts) {
+                json << "\"" << key << "\":[";
+                for (size_t i = 0; i < pts.size(); ++i) {
+                    json << "{\"x\":" << pts[i].x << ",\"y\":" << pts[i].y << ",\"z\":" << pts[i].z << "}";
+                    if (i != pts.size() - 1) json << ",";
+                }
+                json << "],";
+            };
+
+            auto writeWeld = [&](const std::string& key, const std::vector<weldStruct>& welds) {
+                json << "\"" << key << "\":[";
+                for (size_t i = 0; i < welds.size(); ++i) {
+                    json << "{\"x\":" << welds[i].point.x << ",\"y\":" << welds[i].point.y << ",\"z\":" << welds[i].point.z
+                         << ",\"rx\":" << welds[i].rx << ",\"ry\":" << welds[i].ry << ",\"rz\":" << welds[i].rz << "}";
+                    if (i != welds.size() - 1) json << ",";
+                }
+                json << "]";
+            };
+
+            writePoints("cloudA", laserA->tsCloud);
+            writePoints("cloudB", laserB->tsCloud);
+            writeWeld("weldA", weldA);
+            json << ",";
+            writeWeld("weldB", weldB);
+
+            json << "}";
+            res.set_content(json.str(), "application/json");
+        }
+        catch (...) {
+            res.status = 500;
+            res.set_content("{\"status\":\"fail\"}", "application/json");
+        }
+    });
 
     // 接收前端修改后的焊接点
     svr.Post("/weld/update", [&](const httplib::Request& req, httplib::Response& res) {
@@ -939,6 +1260,126 @@ int main() {
             }
 
             std::cout << "焊接完成，总耗时约 " << (waited * 100 / 1000) << " 秒" << std::endl;
+            res.set_content(R"({"status":"success","message":"焊接完成"})", "application/json");
+        }
+        catch (...) {
+            res.status = 500;
+            res.set_content("{\"status\":\"fail\"}", "application/json");
+        }
+        });
+
+    // =====================================================================
+    // 算法二启动：把 /weld/update 保存的“左+右”点按同一截面配对、交错写成焊接
+    // 轨迹（最多 20 对、必含首尾对）写入 LR，再设置工艺参数并启动焊接程序。
+    // 与 /start(算法一) 的区别：算法一保存的就是单线最低点可直接进 LR；
+    // 算法二保存的是左右两边点，需先配对成交错轨迹再执行。
+    // =====================================================================
+    svr.Get("/start2", [&](const httplib::Request& req, httplib::Response& res) {
+        try {
+            res.set_header("Access-Control-Allow-Origin", "*");
+
+            if (weldMode != 2) {
+                res.status = 400;
+                res.set_content(u8R"({"status":"fail","message":"当前数据不是算法二（左右点），请先在焊缝特征点筛选中选择算法二"})", "application/json");
+                return;
+            }
+
+            // 1) 左右配对 + 交错（每臂最多 20 对 -> <=40 点），返回平均槽宽
+            double widthA2 = 0.0, widthB2 = 0.0;
+            std::vector<weldStruct> pathA = pairLeftRightInterleave(weldA_final, initLeftA, initRightA, 20, widthA2);
+            std::vector<weldStruct> pathB = pairLeftRightInterleave(weldB_final, initLeftB, initRightB, 20, widthB2);
+
+            if (pathA.empty() && pathB.empty()) {
+                res.status = 400;
+                res.set_content(u8R"({"status":"fail","message":"没有可用的左右配对点，请先进行算法二焊缝特征点筛选"})", "application/json");
+                return;
+            }
+
+            // 2) 将交错轨迹写入 LR 寄存器（LR[11] 起，每臂最多 40 点）
+            auto writePath = [&](robotConnect* robot, const std::vector<weldStruct>& path, const char* tag) {
+                if (path.empty() || !robot || !robot->m_pCmApi->isConnected()) return;
+                const int32_t START_REG = 11;
+                int32_t config = 0;
+                robot->m_pMot->getConfig(0, config);
+
+                LocPos posData;
+                posData.ufNum = 1;
+                posData.utNum = 0;
+                posData.config = config;
+
+                for (int i = 0; i < static_cast<int>(path.size()); ++i) {
+                    const weldStruct& w = path[i];
+                    posData.vecPos.clear();
+                    posData.vecPos.push_back(w.point.x);
+                    posData.vecPos.push_back(w.point.y);
+                    posData.vecPos.push_back(w.point.z);
+                    posData.vecPos.push_back(w.rx);
+                    posData.vecPos.push_back(w.ry);
+                    posData.vecPos.push_back(w.rz);
+                    robot->m_pVar->setLR(0, START_REG + i, posData);
+                }
+                std::cout << "算法二写入 " << tag << " LR 焊接点: " << path.size() << " 个" << std::endl;
+            };
+            writePath(robotA, pathA, "RobotA");
+            writePath(robotB, pathB, "RobotB");
+            
+            bool robotALoaded = false;
+            bool robotBLoaded = false;
+
+            // 卸载程序，防止无法加载程序
+            robotA->m_pVm->isLoaded("RUN.PRG", robotALoaded);
+            if (robotALoaded) {
+                robotA->m_pVm->unload("RUN.PRG");
+            }
+            robotA->m_pVm->isLoaded(lastScanProgram, robotALoaded);
+            if (robotALoaded) {
+                robotA->m_pVm->unload(lastScanProgram);
+            }
+
+            robotB->m_pVm->isLoaded("RUN.PRG", robotBLoaded);
+            if (robotBLoaded) {
+                robotB->m_pVm->unload("RUN.PRG");
+            }
+            robotB->m_pVm->isLoaded(lastScanProgram, robotBLoaded);
+            if (robotBLoaded) {
+                robotB->m_pVm->unload(lastScanProgram);
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+            // 加载焊接程序
+            robotA->m_pVm->load("/usr/codesys/hsc3_app/script/", "RUN.PRG");
+            robotB->m_pVm->load("/usr/codesys/hsc3_app/script/", "RUN.PRG");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+            // 设置焊接进行中标志 (RUN.PRG 完成后需将此寄存器置 0)
+            robotA->m_pVar->setR(52, 1);
+            robotA->m_pVm->start("RUN.PRG");
+
+            // 机械臂B延时10s，防止碰撞
+            std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+            robotB->m_pVar->setR(52, 1);
+            robotB->m_pVm->start("RUN.PRG");
+
+            // 等待焊接完成: 轮询 R[52]，RUN.PRG 结束时置 R[52]=0
+            double weldStatusA = 1;
+            double weldStatusB = 1;
+            int maxWait = 6000;  // 超时 600 秒 (100ms * 6000)
+            int waited = 0;
+            while ((weldStatusA != 0 || weldStatusB != 0) && waited < maxWait) {
+                robotA->m_pVar->getR(52, weldStatusA);
+                robotB->m_pVar->getR(52, weldStatusB);
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                waited++;
+            }
+
+            if (waited >= maxWait) {
+                res.status = 500;
+                res.set_content(R"({"status":"fail","message":"焊接超时，请检查机器人状态"})", "application/json");
+                return;
+            }
+
+            std::cout << "算法二焊接完成，总耗时约 " << (waited * 100 / 1000) << " 秒" << std::endl;
             res.set_content(R"({"status":"success","message":"焊接完成"})", "application/json");
         }
         catch (...) {

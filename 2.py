@@ -5,6 +5,9 @@ import cv2
 import numpy as np
 import uuid
 import os
+import asyncio
+import logging
+import time
 import torch
 import torch.nn.functional as F
 from torchvision.transforms import Compose
@@ -13,11 +16,25 @@ from torchvision.transforms import Compose
 from depth_anything.dpt import DepthAnything
 from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
 
+# ====================== 日志配置 ======================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+logger = logging.getLogger("detect-distance")
+
 # ====================== 全局配置（可根据需求修改）======================
 app = FastAPI(title="目标检测+深度距离计算API", version="1.0")
 
 # YOLO模型路径
 YOLO_MODEL_PATH = "model/best.pt"
+# YOLO高召回配置：优先尽可能检出焊缝，代价是速度下降且误检增加。
+# 如果误检过多，优先把YOLO_CONFIDENCE调高到0.03或0.05。
+YOLO_CONFIDENCE = 0.01
+YOLO_IMAGE_SIZE = 1280
+YOLO_IOU = 0.70
+YOLO_MAX_DETECTIONS = 100
+YOLO_AUGMENT = True
 # 深度模型配置
 DEPTH_ENCODER = 'vitb'
 DEPTH_WEIGHT_PATH = f'checkpoints/depth_anything_{DEPTH_ENCODER}14.pth'
@@ -35,16 +52,28 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # 设备配置（自动使用CUDA/CPU）
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+# YOLO和深度模型是全局共享对象。使用异步锁确保同一时间只有一个请求执行
+# 模型推理；等待锁和工作线程执行期间不会阻塞Uvicorn事件循环。
+INFERENCE_LOCK = asyncio.Lock()
+
 # ====================== 全局模型加载（容器/服务启动时仅加载一次，提升性能）======================
 # 1. 加载YOLO目标检测模型
 try:
+    logger.info("开始加载YOLO模型: %s", YOLO_MODEL_PATH)
+    load_start = time.perf_counter()
     yolo_model = YOLO(YOLO_MODEL_PATH)
-    print(f"YOLO模型加载完成: {YOLO_MODEL_PATH} | 设备: {DEVICE}")
+    logger.info(
+        "YOLO模型加载完成: %s | 设备: %s | 耗时: %.3fs",
+        YOLO_MODEL_PATH, DEVICE, time.perf_counter() - load_start
+    )
 except Exception as e:
+    logger.exception("YOLO模型加载失败")
     raise FileNotFoundError(f"YOLO模型加载失败: {e}")
 
 # 2. 加载深度估计模型
 try:
+    logger.info("开始加载深度模型: %s", DEPTH_WEIGHT_PATH)
+    load_start = time.perf_counter()
     model_configs = {
         'vitb': {'encoder': 'vitb', 'features': 128, 'out_channels': [96, 192, 384, 768]},
     }
@@ -59,8 +88,12 @@ try:
         NormalizeImage(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         PrepareForNet(),
     ])
-    print(f" 深度模型加载完成: {DEPTH_WEIGHT_PATH} | 设备: {DEVICE}")
+    logger.info(
+        "深度模型加载完成: %s | 设备: %s | 耗时: %.3fs",
+        DEPTH_WEIGHT_PATH, DEVICE, time.perf_counter() - load_start
+    )
 except Exception as e:
+    logger.exception("深度模型加载失败")
     raise FileNotFoundError(f"深度模型加载失败: {e}")
 
 # ====================== 核心工具函数（和原有脚本逻辑一致，适配接口）======================
@@ -154,31 +187,107 @@ def draw_result(img, det_result, horizontal_dist, depth_gray):
 
     return img, depth_colored
 
+
+def run_yolo_inference(raw_img):
+    """在线程池中执行同步YOLO推理。"""
+    return yolo_model.predict(
+        source=raw_img,
+        conf=YOLO_CONFIDENCE,
+        imgsz=YOLO_IMAGE_SIZE,
+        iou=YOLO_IOU,
+        max_det=YOLO_MAX_DETECTIONS,
+        augment=YOLO_AUGMENT,
+        verbose=False,
+    )[0]
+
+
+def draw_and_save_results(draw_img, best_det, horizontal_dist, depth_gray,
+                          result_img_path, depth_img_path):
+    """在线程池中绘制并保存结果图片。"""
+    result_img, depth_img = draw_result(
+        draw_img, best_det, horizontal_dist, depth_gray
+    )
+    result_saved = cv2.imwrite(result_img_path, result_img)
+    depth_saved = cv2.imwrite(depth_img_path, depth_img)
+    if not result_saved or not depth_saved:
+        raise IOError(
+            f"结果图片保存失败: result_saved={result_saved}, "
+            f"depth_saved={depth_saved}"
+        )
+
 # ====================== 核心接口：上传图片→一站式处理→返回距离+结果图 =======================
 @app.post("/detect-distance", summary="上传图片，检测目标并计算水平距离")
 async def detect_and_calculate(file: UploadFile = File(..., description="上传需要处理的图片（jpg/png）")):
+    request_id = uuid.uuid4().hex[:8]
+    request_start = time.perf_counter()
+    logger.info("[%s] 收到/detect-distance请求 | 文件名: %s | 类型: %s",
+                request_id, file.filename, file.content_type)
     try:
         # 1. 读取上传的图片，转换为OpenCV格式
+        step_start = time.perf_counter()
+        logger.info("[%s] 开始读取上传文件", request_id)
         image_bytes = await file.read()
+        logger.info("[%s] 文件读取完成 | 大小: %d bytes | 耗时: %.3fs",
+                    request_id, len(image_bytes), time.perf_counter() - step_start)
+
+        step_start = time.perf_counter()
+        logger.info("[%s] 开始解码图片", request_id)
         np_img = np.frombuffer(image_bytes, np.uint8)
         raw_img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
         if raw_img is None:
+            logger.warning("[%s] 图片解码失败 | 总耗时: %.3fs",
+                           request_id, time.perf_counter() - request_start)
             return JSONResponse(status_code=400, content={"error": "图片格式错误，无法解析"})
         img_h, img_w = raw_img.shape[:2]
+        logger.info("[%s] 图片解码完成 | 尺寸: %dx%d | 耗时: %.3fs",
+                    request_id, img_w, img_h, time.perf_counter() - step_start)
         # 备份原图用于绘制结果
         draw_img = raw_img.copy()
 
         # 2. YOLO目标检测（获取最佳检测框和红点坐标）
-        yolo_results = yolo_model(raw_img)[0]
-        best_det, all_detections = get_best_bbox(yolo_results)
-        if best_det is None:
-            return JSONResponse(status_code=404, content={"error": "未检测到任何目标，无法计算距离"})
-        target_x, target_y = best_det["point"]["x"], best_det["point"]["y"]
+        step_start = time.perf_counter()
+        logger.info("[%s] 等待获取模型推理锁", request_id)
+        async with INFERENCE_LOCK:
+            logger.info("[%s] 已获取模型推理锁 | 等待: %.3fs",
+                        request_id, time.perf_counter() - step_start)
 
-        # 3. 深度估计（生成原图尺寸的深度灰度图）
-        depth_gray = compute_depth_gray(raw_img)
+            logger.info("[%s] 开始YOLO目标检测（工作线程）", request_id)
+            step_start = time.perf_counter()
+            yolo_results = await asyncio.to_thread(run_yolo_inference, raw_img)
+            logger.info("[%s] YOLO推理完成 | 耗时: %.3fs",
+                        request_id, time.perf_counter() - step_start)
+            best_det, all_detections = get_best_bbox(yolo_results)
+            logger.info("[%s] 检测结果解析完成 | 目标数: %d",
+                        request_id, len(all_detections))
+            if best_det is None:
+                logger.warning("[%s] 未检测到目标，返回404 | 总耗时: %.3fs",
+                               request_id, time.perf_counter() - request_start)
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "未检测到任何目标，无法计算距离"}
+                )
+            target_x = best_det["point"]["x"]
+            target_y = best_det["point"]["y"]
+            logger.info(
+                "[%s] 最佳目标 | 标签: %s | 置信度: %.4f | 目标点: (%.1f, %.1f)",
+                request_id, best_det["label"], best_det["confidence"],
+                target_x, target_y
+            )
+
+            # 3. 深度估计（生成原图尺寸的深度灰度图）
+            step_start = time.perf_counter()
+            logger.info("[%s] 开始深度估计（工作线程）", request_id)
+            depth_gray = await asyncio.to_thread(
+                compute_depth_gray, raw_img, request_id
+            )
+            logger.info("[%s] 深度估计完成 | 耗时: %.3fs",
+                        request_id, time.perf_counter() - step_start)
+
+        logger.info("[%s] 已释放模型推理锁", request_id)
 
         # 4. 计算水平距离
+        step_start = time.perf_counter()
+        logger.info("[%s] 开始计算水平距离", request_id)
         horizontal_dist, calc_msg = calculate_horizontal_distance(
             depth_gray=depth_gray,
             ref_u=FIXED_REF_U,
@@ -190,6 +299,8 @@ async def detect_and_calculate(file: UploadFile = File(..., description="上传�
             img_h=img_h,
             vertical_diff=VERTICAL_DIFF_CM
         )
+        logger.info("[%s] 距离计算完成 | 距离: %.2f cm | 状态: %s | 耗时: %.3fs",
+                    request_id, horizontal_dist, calc_msg, time.perf_counter() - step_start)
 
         # 5. 绘制结果图，生成唯一文件名（避免重复）
         uuid_str = uuid.uuid4().hex
@@ -198,11 +309,24 @@ async def detect_and_calculate(file: UploadFile = File(..., description="上传�
         # 彩色深度图
         depth_img_path = os.path.join(OUTPUT_DIR, f"{uuid_str}_depth.jpg")
         # 绘制并保存
-        result_img, depth_img = draw_result(draw_img, best_det, horizontal_dist, depth_gray)
-        cv2.imwrite(result_img_path, result_img)
-        cv2.imwrite(depth_img_path, depth_img)
+        step_start = time.perf_counter()
+        logger.info("[%s] 开始绘制并保存结果图片（工作线程）", request_id)
+        await asyncio.to_thread(
+            draw_and_save_results,
+            draw_img,
+            best_det,
+            horizontal_dist,
+            depth_gray,
+            result_img_path,
+            depth_img_path,
+        )
+        logger.info("[%s] 结果图片保存完成 | result: %s | depth: %s | 耗时: %.3fs",
+                    request_id, result_img_path, depth_img_path,
+                    time.perf_counter() - step_start)
 
         # 6. 构造返回结果（包含距离、检测信息、图片访问路径）
+        logger.info("[%s] 请求处理完成，准备返回200 | 总耗时: %.3fs",
+                    request_id, time.perf_counter() - request_start)
         return JSONResponse(content={
             "code": 200,
             "msg": calc_msg,
@@ -215,6 +339,8 @@ async def detect_and_calculate(file: UploadFile = File(..., description="上传�
 
     except Exception as e:
         # 全局异常捕获，返回错误信息
+        logger.exception("[%s] 请求处理失败 | 总耗时: %.3fs",
+                         request_id, time.perf_counter() - request_start)
         return JSONResponse(status_code=500, content={"error": f"处理失败: {str(e)}"})
 
 # ====================== 原有接口：根据文件名获取结果图（复用）======================
@@ -240,17 +366,42 @@ MANUAL_FOCAL_LENGTH_MM = 4.0         # 焦距 mm
 MANUAL_U0 = 2880 / 2                 # 主点 x（图像中心）
 
 
-def compute_depth_gray(raw_img):
+def compute_depth_gray(raw_img, request_id="-"):
     """复用已加载的深度模型，计算原图尺寸的深度灰度图"""
     img_h, img_w = raw_img.shape[:2]
+
+    step_start = time.perf_counter()
+    logger.info("[%s] 深度预处理开始", request_id)
     rgb_img = cv2.cvtColor(raw_img, cv2.COLOR_BGR2RGB) / 255.0
     transformed_img = depth_transform({'image': rgb_img})['image']
     tensor_img = torch.from_numpy(transformed_img).unsqueeze(0).to(DEVICE)
+    logger.info("[%s] 深度预处理完成 | tensor形状: %s | 耗时: %.3fs",
+                request_id, tuple(tensor_img.shape), time.perf_counter() - step_start)
+
+    step_start = time.perf_counter()
+    logger.info("[%s] 深度模型推理开始 | 设备: %s", request_id, DEVICE)
     with torch.no_grad():
         depth = depth_model(tensor_img)
+    if DEVICE == 'cuda':
+        torch.cuda.synchronize()
+    logger.info("[%s] 深度模型推理完成 | 耗时: %.3fs",
+                request_id, time.perf_counter() - step_start)
+
+    step_start = time.perf_counter()
+    logger.info("[%s] 深度图插值和归一化开始 | 输出尺寸: %dx%d",
+                request_id, img_w, img_h)
     depth = F.interpolate(depth[None], (img_h, img_w), mode='bilinear', align_corners=False)[0, 0]
-    depth = (depth - depth.min()) / (depth.max() - depth.min()) * 255.0
-    return depth.cpu().numpy().astype(np.uint8)
+    depth_min = depth.min()
+    depth_max = depth.max()
+    depth_range = depth_max - depth_min
+    if depth_range.item() < 1e-8:
+        raise ValueError("深度模型输出范围为0，无法归一化")
+    depth = (depth - depth_min) / depth_range * 255.0
+    depth_gray = depth.cpu().numpy().astype(np.uint8)
+    logger.info("[%s] 深度图插值和归一化完成 | 范围: %.6f~%.6f | 耗时: %.3fs",
+                request_id, depth_min.item(), depth_max.item(),
+                time.perf_counter() - step_start)
+    return depth_gray
 
 
 def calculate_manual_distance(depth_gray, pixel_x, pixel_y):
@@ -290,25 +441,45 @@ async def detect_distance_manual(
     pixelX: str = Form(...),
     pixelY: str = Form(...),
 ):
+    request_id = uuid.uuid4().hex[:8]
+    request_start = time.perf_counter()
+    logger.info("[%s] 收到/detect-distance/manual请求 | 文件名: %s | pixelX: %s | pixelY: %s",
+                request_id, file.filename, pixelX, pixelY)
     try:
         # 1. 读取上传的图片
+        step_start = time.perf_counter()
         image_bytes = await file.read()
+        logger.info("[%s] 手动模式文件读取完成 | 大小: %d bytes | 耗时: %.3fs",
+                    request_id, len(image_bytes), time.perf_counter() - step_start)
         np_img = np.frombuffer(image_bytes, np.uint8)
         raw_img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
         if raw_img is None:
+            logger.warning("[%s] 手动模式图片解码失败", request_id)
             return JSONResponse(status_code=400, content={"distance": -1, "error": "图片格式错误，无法解析"})
 
         pixel_x = int(float(pixelX))
         pixel_y = int(float(pixelY))
 
         # 2. 深度估计 + 距离计算
-        depth_gray = compute_depth_gray(raw_img)
+        lock_start = time.perf_counter()
+        logger.info("[%s] 手动模式等待获取模型推理锁", request_id)
+        async with INFERENCE_LOCK:
+            logger.info("[%s] 手动模式已获取模型推理锁 | 等待: %.3fs",
+                        request_id, time.perf_counter() - lock_start)
+            logger.info("[%s] 手动模式开始深度估计（工作线程）", request_id)
+            depth_gray = await asyncio.to_thread(
+                compute_depth_gray, raw_img, request_id
+            )
+        logger.info("[%s] 手动模式已释放模型推理锁", request_id)
         distance = calculate_manual_distance(depth_gray, pixel_x, pixel_y)
 
-        print(f"manual pixel: ({pixel_x}, {pixel_y}) -> distance: {distance:.2f} cm")
+        logger.info("[%s] 手动模式处理完成 | pixel: (%d, %d) | 距离: %.2f cm | 总耗时: %.3fs",
+                    request_id, pixel_x, pixel_y, distance,
+                    time.perf_counter() - request_start)
         return {"distance": round(distance, 2)}
     except Exception as e:
-        print(f"detect-distance/manual error: {e}")
+        logger.exception("[%s] 手动模式处理失败 | 总耗时: %.3fs",
+                         request_id, time.perf_counter() - request_start)
         return JSONResponse(status_code=500, content={"distance": -1, "error": str(e)})
 
 

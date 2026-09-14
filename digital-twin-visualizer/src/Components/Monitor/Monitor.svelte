@@ -18,8 +18,22 @@
     let renderer;
     let controls;
 
-    let pointSize = 2;
-    const WELD_MARKER_SIZE = 8;
+    // 原始点云固定为最小尺寸；「点大小」滑块只调整焊缝特征点大小
+    const CLOUD_POINT_SIZE = 2;
+    let weldPointSize = CLOUD_POINT_SIZE * 3;  // 默认焊缝点为点云大小的 3 倍
+
+    // 圆形点纹理：让焊缝点显示为圆点
+    const weldCircleTexture = (() => {
+        const c = document.createElement("canvas");
+        c.width = c.height = 64;
+        const ctx = c.getContext("2d")!;
+        ctx.clearRect(0, 0, 64, 64);
+        ctx.beginPath();
+        ctx.arc(32, 32, 30, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+        return new THREE.CanvasTexture(c);
+    })();
 
     // 可编辑的焊缝数据（包含坐标与 rx/ry/rz）
     let weldA: any[] = [];
@@ -33,8 +47,6 @@
     let cloudObjB: THREE.Points | null = null;
     let weldPointsA: THREE.Points | null = null;
     let weldPointsB: THREE.Points | null = null;
-    let weldLineA: THREE.Line | null = null;
-    let weldLineB: THREE.Line | null = null;
 
     const raycaster = new THREE.Raycaster();
     const mouseNDC = new THREE.Vector2();
@@ -71,14 +83,8 @@
         return val.toFixed(decimals) + unit;
     };
 
-    async function showPointCloud() {
-        showPointViewer = true;
-
-        await tick();
-
-        initViewer();
-
-        const res = await fetch("http://localhost:8082/weld");
+    async function loadWeldData(endpoint: string) {
+        const res = await fetch("http://localhost:8082" + endpoint);
         const data = await res.json();
 
         cloudA = Array.isArray(data.cloudA) ? data.cloudA : [];
@@ -93,6 +99,22 @@
 
         // 2. 尝试更新（如果此时场景已存在）
         updateDynamicPointClouds(data);
+    }
+
+    async function showPointCloud() {
+        showPointViewer = true;
+
+        await tick();
+
+        initViewer();
+
+        weldAlgorithm = 1;
+        await loadWeldData("/weld");
+    }
+
+    async function useWeldAlgorithm(algo: 1 | 2) {
+        weldAlgorithm = algo;
+        await loadWeldData(algo === 1 ? "/weld" : "/weld2");
     }
 
     function cloneWeld(p: any) {
@@ -255,11 +277,10 @@
 
     function renderPointCloud() {
         // --- 清理旧对象 ---
-        [cloudObjA, cloudObjB, weldPointsA, weldPointsB, weldLineA, weldLineB]
+        [cloudObjA, cloudObjB, weldPointsA, weldPointsB]
             .forEach(obj => { if (obj) scene.remove(obj); });
         cloudObjA = cloudObjB = null;
         weldPointsA = weldPointsB = null;
-        weldLineA = weldLineB = null;
 
         // --- 点云（整体按获取方式着色：自动=蓝、手动=橙）---
         const cloudColor = acquireMode === "manual" ? MANUAL_CLOUD_COLOR : AUTO_CLOUD_COLOR;
@@ -295,23 +316,20 @@
         });
         const geo = new THREE.BufferGeometry();
         geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-        const mat = new THREE.PointsMaterial({ size: pointSize, color });
+        const mat = new THREE.PointsMaterial({ size: CLOUD_POINT_SIZE, color });
         return new THREE.Points(geo, mat);
     }
 
     function rebuildWeld(arm: "A" | "B") {
         const welds = arm === "A" ? weldA : weldB;
         const prevPoints = arm === "A" ? weldPointsA : weldPointsB;
-        const prevLine = arm === "A" ? weldLineA : weldLineB;
         const pointColor = arm === "A" ? 0xff3030 : 0x30ff30;
-        const lineColor = arm === "A" ? 0xff0000 : 0x00ff00;
 
         if (prevPoints) scene.remove(prevPoints);
-        if (prevLine) scene.remove(prevLine);
 
         if (!welds.length) {
-            if (arm === "A") { weldPointsA = null; weldLineA = null; }
-            else { weldPointsB = null; weldLineB = null; }
+            if (arm === "A") { weldPointsA = null; }
+            else { weldPointsB = null; }
             return;
         }
 
@@ -322,20 +340,22 @@
         const geo = new THREE.BufferGeometry();
         geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
 
-        const pointsMat = new THREE.PointsMaterial({ size: WELD_MARKER_SIZE, color: pointColor });
+        // 焊缝点：圆点，尺寸由滑块控制（默认点云 3 倍）
+        const pointsMat = new THREE.PointsMaterial({
+            size: weldPointSize,
+            color: pointColor,
+            map: weldCircleTexture,
+            transparent: true,
+            alphaTest: 0.5,
+            depthWrite: false,
+        });
         const points = new THREE.Points(geo, pointsMat);
         points.userData = { kind: "weld", arm };
 
-        const line = new THREE.Line(
-            geo,
-            new THREE.LineBasicMaterial({ color: lineColor })
-        );
-
-        scene.add(line);
         scene.add(points);
 
-        if (arm === "A") { weldPointsA = points; weldLineA = line; }
-        else { weldPointsB = points; weldLineB = line; }
+        if (arm === "A") { weldPointsA = points; }
+        else { weldPointsB = points; }
     }
 
     function onPointerDown(event: PointerEvent) {
@@ -354,7 +374,7 @@
 
         raycaster.setFromCamera(mouseNDC, camera);
         // 拾取阈值按当前点大小换算
-        raycaster.params.Points.threshold = WELD_MARKER_SIZE;
+        raycaster.params.Points.threshold = weldPointSize;
 
         // 1. 先判断是否命中焊接点 -> 删除
         const weldTargets = [weldPointsA, weldPointsB].filter(Boolean) as THREE.Points[];
@@ -372,7 +392,7 @@
         }
 
         // 2. 否则判断是否命中点云 -> 新增焊接点（取最近点）
-        raycaster.params.Points.threshold = Math.max(pointSize * 2, 3);
+        raycaster.params.Points.threshold = Math.max(CLOUD_POINT_SIZE * 2, 3);
         const cloudTargets = [cloudObjA, cloudObjB].filter(Boolean) as THREE.Points[];
         const cloudHits = raycaster.intersectObjects(cloudTargets, false);
         if (cloudHits.length === 0) return;
@@ -446,9 +466,10 @@
     }
 
     function updatePointSize(){
-        [cloudObjA, cloudObjB].forEach(obj => {
+        // 原始点云固定最小尺寸；滑块只调整焊缝点大小
+        [weldPointsA, weldPointsB].forEach(obj => {
             if (obj) {
-                (obj.material as THREE.PointsMaterial).size = pointSize;
+                (obj.material as THREE.PointsMaterial).size = weldPointSize;
                 (obj.material as THREE.PointsMaterial).needsUpdate = true;
             }
         });
@@ -509,6 +530,7 @@
     // 急停：调用后端 /estop 停止 A、B 两臂；再次点击调用 /estop/cancel 取消急停
     let isEstopping = false;
     let isEstopped = false;
+    let resettingRobot: "A" | "B" | null = null;
 
     async function toggleEstop() {
         if (isEstopping) return;
@@ -528,6 +550,29 @@
             toastMessage = "急停失败: 无法访问后端服务器";
         } finally {
             isEstopping = false;
+            showToast = true;
+            setTimeout(() => showToast = false, 3000);
+        }
+    }
+
+    async function resetRobot(robot: "A" | "B") {
+        if (resettingRobot || !$isRobotConnected || isEstopped) return;
+
+        resettingRobot = robot;
+        try {
+            const endpoint = robot === "A"
+                ? "http://localhost:8082/robot/a/reset"
+                : "http://localhost:8082/robot/b/reset";
+            const res = await fetch(endpoint, { method: "POST" });
+            const data = await res.json().catch(() => ({}));
+            const ok = res.ok && data.status !== "fail";
+            toastMessage = data.message || (ok
+                ? `机械臂${robot}正在复位`
+                : `机械臂${robot}复位失败`);
+        } catch (e) {
+            toastMessage = `机械臂${robot}复位失败: 无法访问后端服务器`;
+        } finally {
+            resettingRobot = null;
             showToast = true;
             setTimeout(() => showToast = false, 3000);
         }
@@ -600,6 +645,9 @@
     // Default mode is auto.
     let acquireMode: "auto" | "manual" = "auto";
 
+    // 焊缝求解算法：1 = /weld（默认 PCA），2 = /weld2（detectWeldLeftRight 左右拐角）
+    let weldAlgorithm: 1 | 2 = 1;
+
     // 点云获取中状态：点击获取点云后置 true，扫描完成后置 false。
     let isAcquiringPointCloud = false;
     let pointCloudPollTimer: ReturnType<typeof setInterval> | null = null;
@@ -626,7 +674,8 @@
         stopPointCloudPolling();
         pointCloudPollTimer = setInterval(async () => {
             try {
-                const res = await fetch("http://localhost:8082/weld");
+                // 只轮询轻量的 /weld/status 判断扫描是否完成，避免重复调用 /weld（会计算焊缝并写寄存器）
+                const res = await fetch("http://localhost:8082/weld/status");
                 const data = await res.json();
                 if (data.status === "success") {
                     stopPointCloudPolling();
@@ -910,7 +959,11 @@
         startRecording(cam2Video, 'cam2');
 
         try {
-            const res = await fetch("http://localhost:8082/start", {
+            // 算法一(/start) 保存单线最低点；算法二(/start2) 需把左右点配对成交错轨迹后启动
+            const startUrl = weldAlgorithm === 2
+                ? "http://localhost:8082/start2"
+                : "http://localhost:8082/start";
+            const res = await fetch(startUrl, {
                 method: "GET",
                 headers: {
                     "X-Current": current,
@@ -1145,10 +1198,36 @@
             {isEstopped ? '取消急停' : '急停'}
         {/if}
     </button>
+
+    <button
+            on:click={() => resetRobot("A")}
+            class="btn btn-outline btn-primary shadow-lg"
+            disabled={resettingRobot !== null || !$isRobotConnected || isEstopped}
+    >
+        {#if resettingRobot === "A"}
+            <span class="loading loading-spinner loading-xs"></span>
+            机械臂A复位中...
+        {:else}
+            机械臂A复位
+        {/if}
+    </button>
+
+    <button
+            on:click={() => resetRobot("B")}
+            class="btn btn-outline btn-secondary shadow-lg"
+            disabled={resettingRobot !== null || !$isRobotConnected || isEstopped}
+    >
+        {#if resettingRobot === "B"}
+            <span class="loading loading-spinner loading-xs"></span>
+            机械臂B复位中...
+        {:else}
+            机械臂B复位
+        {/if}
+    </button>
 </div>
 
 <!-- Modbus 数据下拉窗 -->
-<div class="fixed top-4 left-3/4 -translate-x-1/2 z-[100] w-80">
+<div class="fixed top-4 left-44 z-[100] w-80">
     <button
         class="btn btn-sm btn-outline btn-warning w-full shadow-lg flex items-center justify-between"
         on:click={() => showModbusPanel = !showModbusPanel}
@@ -1444,13 +1523,28 @@
 
                 <div class="flex items-center gap-3">
 
-                    <label class="text-sm">点大小</label>
+                    <div class="btn-group">
+                        <button
+                                class="btn btn-sm"
+                                class:btn-primary={weldAlgorithm === 1}
+                                class:btn-ghost={weldAlgorithm !== 1}
+                                on:click={() => useWeldAlgorithm(1)}
+                        >算法一</button>
+                        <button
+                                class="btn btn-sm"
+                                class:btn-secondary={weldAlgorithm === 2}
+                                class:btn-ghost={weldAlgorithm !== 2}
+                                on:click={() => useWeldAlgorithm(2)}
+                        >算法二</button>
+                    </div>
+
+                    <label class="text-sm">焊缝点大小</label>
 
                     <input
                             type="range"
-                            min="1"
-                            max="10"
-                            bind:value={pointSize}
+                            min="2"
+                            max="15"
+                            bind:value={weldPointSize}
                             on:input={updatePointSize}
                     />
 
